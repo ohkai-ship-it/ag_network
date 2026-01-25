@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from uuid import uuid4
 
-from bdcopilot.storage.sqlite import SQLiteManager
+from agnetwork.storage.sqlite import SQLiteManager
 
 
 class SourceIngestor:

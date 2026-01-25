@@ -31,7 +31,7 @@ bd-copilot/
 ├── .env.example                         # Config template (safe)
 ├── .gitignore                           # Exclude secrets, runs, cache
 │
-├── src/bdcopilot/
+├── src/agnetwork/
 │   ├── __init__.py                      # Package version
 │   ├── cli.py                           # Typer CLI (5 commands)
 │   ├── config.py                        # Config management
@@ -302,7 +302,7 @@ pip install -e .
 
 ### Run a Command
 ```bash
-python -m bdcopilot.cli research "Your Company" \
+python -m agnetwork.cli research "Your Company" \
   --snapshot "Your description" \
   --pain "Pain point 1" \
   --trigger "Trigger"
@@ -345,14 +345,14 @@ ruff check src/ tests/
 ## Files Delivered
 
 ### Source Code (13 files)
-- [src/bdcopilot/__init__.py](src/bdcopilot/__init__.py)
-- [src/bdcopilot/cli.py](src/bdcopilot/cli.py) - 230 lines
-- [src/bdcopilot/config.py](src/bdcopilot/config.py) - 45 lines
-- [src/bdcopilot/orchestrator.py](src/bdcopilot/orchestrator.py) - 130 lines
-- [src/bdcopilot/models/core.py](src/bdcopilot/models/core.py) - 100 lines
-- [src/bdcopilot/storage/sqlite.py](src/bdcopilot/storage/sqlite.py) - 120 lines
-- [src/bdcopilot/tools/ingest.py](src/bdcopilot/tools/ingest.py) - 130 lines
-- [src/bdcopilot/skills/research_brief.py](src/bdcopilot/skills/research_brief.py) - 80 lines
+- [src/agnetwork/__init__.py](src/agnetwork/__init__.py)
+- [src/agnetwork/cli.py](src/agnetwork/cli.py) - 230 lines
+- [src/agnetwork/config.py](src/agnetwork/config.py) - 45 lines
+- [src/agnetwork/orchestrator.py](src/agnetwork/orchestrator.py) - 130 lines
+- [src/agnetwork/models/core.py](src/agnetwork/models/core.py) - 100 lines
+- [src/agnetwork/storage/sqlite.py](src/agnetwork/storage/sqlite.py) - 120 lines
+- [src/agnetwork/tools/ingest.py](src/agnetwork/tools/ingest.py) - 130 lines
+- [src/agnetwork/skills/research_brief.py](src/agnetwork/skills/research_brief.py) - 80 lines
 
 ### Tests (4 files)
 - [tests/conftest.py](tests/conftest.py)

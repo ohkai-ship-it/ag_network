@@ -6,7 +6,7 @@ import logging.handlers
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from bdcopilot.config import config
+from agnetwork.config import config
 
 
 class RunManager:
@@ -36,7 +36,7 @@ class RunManager:
 
     def _setup_logger(self) -> logging.Logger:
         """Setup logger for this run."""
-        logger = logging.getLogger(f"bdcopilot.{self.run_id}")
+        logger = logging.getLogger(f"agnetwork.{self.run_id}")
         logger.setLevel(logging.DEBUG)
 
         # Remove any existing handlers

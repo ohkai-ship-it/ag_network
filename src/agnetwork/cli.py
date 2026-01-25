@@ -7,10 +7,10 @@ from typing import List, Optional
 import typer
 from typer import Typer
 
-from bdcopilot.config import config
-from bdcopilot.orchestrator import RunManager
-from bdcopilot.skills.research_brief import ResearchBriefSkill
-from bdcopilot.tools.ingest import SourceIngestor
+from agnetwork.config import config
+from agnetwork.orchestrator import RunManager
+from agnetwork.skills.research_brief import ResearchBriefSkill
+from agnetwork.tools.ingest import SourceIngestor
 
 # Initialize Typer app
 app = Typer(

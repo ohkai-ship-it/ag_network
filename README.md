@@ -15,7 +15,7 @@ cd bd-copilot
 pip install -e .
 
 # Run a command
-python -m bdcopilot.cli research "Your Company" \
+python -m agnetwork.cli research "Your Company" \
   --snapshot "Description" \
   --pain "Problem 1" \
   --trigger "Event 1" \
@@ -31,14 +31,14 @@ cat runs/latest/artifacts/research_brief.md
 ## What's Inside
 
 ```
-bdManager/
+ag_network/
 ├── COMPLETION_SUMMARY.md          ← Full project summary
 ├── Cursor_Prompt_BD_Copilot...md  ← Original specification
 └── bd-copilot/                    ← Main project
     ├── README.md                  ← User guide
     ├── PROTOCOL.md                ← Execution log
     ├── pyproject.toml             ← Dependencies
-    ├── src/bdcopilot/             ← Source code (13 files)
+    ├── src/agnetwork/             ← Source code (13 files)
     ├── tests/                     ← Tests (7 passing)
     ├── data/bd.sqlite             ← Database
     └── runs/                      ← Execution artifacts
@@ -65,8 +65,8 @@ bdManager/
 | [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md) | Full project overview & results |
 | [bd-copilot/README.md](bd-copilot/README.md) | User guide & command reference |
 | [bd-copilot/PROTOCOL.md](bd-copilot/PROTOCOL.md) | Execution log per Master Orchestrator Protocol |
-| [bd-copilot/src/bdcopilot/cli.py](bd-copilot/src/bdcopilot/cli.py) | All 5 commands |
-| [bd-copilot/src/bdcopilot/orchestrator.py](bd-copilot/src/bdcopilot/orchestrator.py) | Run system & logging |
+| [bd-copilot/src/agnetwork/cli.py](bd-copilot/src/agnetwork/cli.py) | All 5 commands |
+| [bd-copilot/src/agnetwork/orchestrator.py](bd-copilot/src/agnetwork/orchestrator.py) | Run system & logging |
 | [bd-copilot/tests/](bd-copilot/tests/) | Unit tests (7/7 passing) |
 
 ---
@@ -141,7 +141,7 @@ runs/
 ## Next Steps
 
 1. **Review** [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md) for full details
-2. **Test** the CLI: `cd bd-copilot && python -m bdcopilot.cli research ...`
+2. **Test** the CLI: `cd bd-copilot && python -m agnetwork.cli research ...`
 3. **Read** [bd-copilot/README.md](bd-copilot/README.md) for command reference
 4. **Check** test results: `pytest tests/ -v`
 5. **Plan** v0.2: LLM integration, web scraping, automation
@@ -153,7 +153,7 @@ runs/
 - **How does it work?** → See [bd-copilot/PROTOCOL.md](bd-copilot/PROTOCOL.md)
 - **How do I use it?** → See [bd-copilot/README.md](bd-copilot/README.md)
 - **What was built?** → See [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md)
-- **What's the architecture?** → See `bd-copilot/src/bdcopilot/`
+- **What's the architecture?** → See `bd-copilot/src/agnetwork/`
 
 ---
 

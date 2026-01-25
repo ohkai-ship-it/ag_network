@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from bdcopilot.config import config
+from agnetwork.config import config
 
 
 class SQLiteManager:

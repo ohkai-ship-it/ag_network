@@ -2,15 +2,15 @@
 
 import json
 
-from bdcopilot.orchestrator import RunManager
+from agnetwork.orchestrator import RunManager
 
 
 def test_run_manager_initialization(temp_run_dir):
     """Test that RunManager initializes correctly."""
     # Monkey patch config to use temp directory
-    import bdcopilot.config
-    orig_runs_dir = bdcopilot.config.config.runs_dir
-    bdcopilot.config.config.runs_dir = temp_run_dir
+    import agnetwork.config
+    orig_runs_dir = agnetwork.config.config.runs_dir
+    agnetwork.config.config.runs_dir = temp_run_dir
 
     try:
         run = RunManager(command="test", slug="test_run")
@@ -22,14 +22,14 @@ def test_run_manager_initialization(temp_run_dir):
         assert run.status_path.exists()
         # Worklog is only created after first log action
     finally:
-        bdcopilot.config.config.runs_dir = orig_runs_dir
+        agnetwork.config.config.runs_dir = orig_runs_dir
 
 
 def test_run_manager_logging(temp_run_dir):
     """Test that RunManager logs actions correctly."""
-    import bdcopilot.config
-    orig_runs_dir = bdcopilot.config.config.runs_dir
-    bdcopilot.config.config.runs_dir = temp_run_dir
+    import agnetwork.config
+    orig_runs_dir = agnetwork.config.config.runs_dir
+    agnetwork.config.config.runs_dir = temp_run_dir
 
     try:
         run = RunManager(command="test", slug="test_logging")
@@ -50,14 +50,14 @@ def test_run_manager_logging(temp_run_dir):
             assert entry["action"] == "Test action"
             assert entry["status"] == "success"
     finally:
-        bdcopilot.config.config.runs_dir = orig_runs_dir
+        agnetwork.config.config.runs_dir = orig_runs_dir
 
 
 def test_run_manager_artifacts(temp_run_dir):
     """Test that RunManager saves artifacts correctly."""
-    import bdcopilot.config
-    orig_runs_dir = bdcopilot.config.config.runs_dir
-    bdcopilot.config.config.runs_dir = temp_run_dir
+    import agnetwork.config
+    orig_runs_dir = agnetwork.config.config.runs_dir
+    agnetwork.config.config.runs_dir = temp_run_dir
 
     try:
         run = RunManager(command="test", slug="test_artifacts")
@@ -79,4 +79,4 @@ def test_run_manager_artifacts(temp_run_dir):
             saved_data = json.load(f)
             assert saved_data == json_data
     finally:
-        bdcopilot.config.config.runs_dir = orig_runs_dir
+        agnetwork.config.config.runs_dir = orig_runs_dir

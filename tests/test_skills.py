@@ -1,6 +1,6 @@
 """Tests for skills."""
 
-from bdcopilot.skills.research_brief import ResearchBriefSkill
+from agnetwork.skills.research_brief import ResearchBriefSkill
 
 
 def test_research_brief_skill_generation():

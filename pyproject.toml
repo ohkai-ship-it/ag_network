@@ -27,10 +27,10 @@ dev = [
 ]
 
 [project.scripts]
-bd = "bdcopilot.cli:app"
+bd = "agnetwork.cli:app"
 
 [tool.setuptools]
-packages = ["bdcopilot"]
+packages = ["agnetwork"]
 package-dir = {"" = "src"}
 
 [tool.ruff]

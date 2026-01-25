@@ -56,7 +56,7 @@ bd-copilot/
         agent_worklog.jsonl
         agent_status.json
   src/
-    bdcopilot/
+    agnetwork/
       __init__.py
       cli.py
       orchestrator.py

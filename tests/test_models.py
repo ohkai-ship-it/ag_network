@@ -1,7 +1,7 @@
 """Tests for data models."""
 
 
-from bdcopilot.models.core import OutreachDraft, ResearchBrief, TargetMap
+from agnetwork.models.core import OutreachDraft, ResearchBrief, TargetMap
 
 
 def test_research_brief_model():
