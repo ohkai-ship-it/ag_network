@@ -1,6 +1,6 @@
-"""Core data models for BD Copilot."""
+"""Core data models for AG Network."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -13,7 +13,7 @@ class Source(BaseModel):
     source_type: str  # "url", "pasted_text", "file"
     content: str
     title: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -35,7 +35,7 @@ class ResearchBrief(BaseModel):
     triggers: List[str]
     competitors: List[str]
     personalization_angles: List[Dict[str, Any]]  # {"angle": "...", "fact": "...", "is_assumption": bool}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class TargetMap(BaseModel):
@@ -43,7 +43,7 @@ class TargetMap(BaseModel):
 
     company: str
     personas: List[Dict[str, Any]]  # Role, title, hypotheses
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class OutreachVariant(BaseModel):
@@ -63,7 +63,7 @@ class OutreachDraft(BaseModel):
     variants: List[OutreachVariant]
     sequence_steps: List[str]
     objection_responses: Dict[str, str]
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class MeetingPrepPack(BaseModel):
@@ -76,7 +76,7 @@ class MeetingPrepPack(BaseModel):
     stakeholder_map: Dict[str, str]
     listen_for_signals: List[str]
     close_plan: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class FollowUpSummary(BaseModel):
@@ -88,4 +88,4 @@ class FollowUpSummary(BaseModel):
     next_steps: List[str]
     tasks: List[Dict[str, Any]]
     crm_notes: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

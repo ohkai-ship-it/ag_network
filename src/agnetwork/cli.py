@@ -7,6 +7,7 @@ from typing import List, Optional
 import typer
 from typer import Typer
 
+import agnetwork.skills  # noqa: F401, I001 - Import skills to register them
 from agnetwork.config import config
 from agnetwork.orchestrator import RunManager
 from agnetwork.skills.research_brief import ResearchBriefSkill
@@ -43,6 +44,12 @@ def research(
     sources_file: Optional[Path] = typer.Option(
         None, "--sources", "-f", help="JSON file with sources"
     ),
+    urls: Optional[List[str]] = typer.Option(
+        None, "--url", "-u", help="URLs to fetch and use as sources (can be repeated)"
+    ),
+    use_memory: bool = typer.Option(
+        False, "--use-memory/--no-memory", help="Enable memory retrieval (M5)"
+    ),
 ):
     """Research a company and generate account research brief."""
     typer.echo(f"🔍 Researching {company}...")
@@ -62,6 +69,38 @@ def research(
 
         # Initialize source ingestor
         ingestor = SourceIngestor(run.run_dir)
+        captured_sources = []
+
+        # Fetch URLs if provided (M5)
+        if urls:
+            typer.echo(f"🌐 Fetching {len(urls)} URLs...")
+            from agnetwork.storage.sqlite import SQLiteManager
+            from agnetwork.tools.web import SourceCapture
+
+            capture = SourceCapture(run.run_dir / "sources")
+            db = SQLiteManager()
+
+            for url in urls:
+                typer.echo(f"   Fetching: {url[:60]}...")
+                result = capture.capture_url(url)
+                if result.is_success:
+                    typer.echo(f"   ✅ {result.title or 'No title'}")
+                    # Upsert to database
+                    db.upsert_source_from_capture(
+                        source_id=result.source_id,
+                        url=result.url,
+                        final_url=result.final_url,
+                        title=result.title,
+                        clean_text=result.clean_text,
+                        content_hash=result.content_hash,
+                        fetched_at=result.fetched_at.isoformat(),
+                        run_id=run.run_id,
+                    )
+                    captured_sources.append(result)
+                else:
+                    typer.echo(f"   ❌ Failed: {result.error}", err=True)
+
+            typer.echo(f"✅ Captured {len(captured_sources)} URLs")
 
         # Load sources if provided
         if sources_file and sources_file.exists():
@@ -84,6 +123,9 @@ def research(
             "triggers": triggers or [],
             "competitors": competitors or [],
             "sources_ingested": len(ingestor.ingested_sources),
+            "urls_fetched": [s.url for s in captured_sources],
+            "source_ids": [s.source_id for s in captured_sources],
+            "use_memory": use_memory,
         }
         run.save_inputs(inputs)
 
@@ -320,18 +362,276 @@ def validate_run(
     require_meta: bool = typer.Option(
         False, "--require-meta", "-m", help="Require meta blocks in artifacts"
     ),
+    check_evidence: bool = typer.Option(
+        False, "--check-evidence", "-e", help="Check claim evidence consistency (M4)"
+    ),
 ):
-    """Validate a run folder for integrity."""
+    """Validate a run folder for integrity.
+
+    M4: Use --check-evidence to verify claim→source links in the database.
+    """
     from agnetwork.validate import validate_run_folder
 
     typer.echo(f"🔍 Validating run folder: {run_path}")
 
-    result = validate_run_folder(run_path, require_meta=require_meta)
+    result = validate_run_folder(
+        run_path, require_meta=require_meta, check_evidence=check_evidence
+    )
 
     typer.echo(str(result))
 
     if not result.is_valid:
         raise typer.Exit(1)
+
+
+@app.command(name="run-pipeline")
+def run_pipeline(
+    company: str = typer.Argument(..., help="Company name to run pipeline for"),
+    snapshot: str = typer.Option(
+        "", "--snapshot", "-s", help="Company snapshot/description"
+    ),
+    pains: Optional[List[str]] = typer.Option(
+        None, "--pain", "-p", help="Key pains (can be repeated)"
+    ),
+    triggers: Optional[List[str]] = typer.Option(
+        None, "--trigger", "-t", help="Triggers (can be repeated)"
+    ),
+    competitors: Optional[List[str]] = typer.Option(
+        None, "--competitor", "-c", help="Competitors (can be repeated)"
+    ),
+    urls: Optional[List[str]] = typer.Option(
+        None, "--url", "-u", help="URLs to fetch and use as sources (can be repeated)"
+    ),
+    persona: str = typer.Option(
+        "VP Sales", "--persona", help="Target persona"
+    ),
+    channel: str = typer.Option(
+        "email", "--channel", help="Outreach channel: email or linkedin"
+    ),
+    meeting_type: str = typer.Option(
+        "discovery", "--meeting-type", help="Meeting type: discovery, demo, negotiation"
+    ),
+    notes: str = typer.Option(
+        "Pipeline run completed", "--notes", "-n", help="Meeting notes for follow-up"
+    ),
+    verify: bool = typer.Option(
+        True, "--verify/--no-verify", help="Run verification on results"
+    ),
+    mode: str = typer.Option(
+        "manual", "--mode", "-m", help="Execution mode: manual (default) or llm"
+    ),
+    use_memory: bool = typer.Option(
+        False, "--use-memory/--no-memory", help="Enable memory retrieval for context (M4/M5)"
+    ),
+):
+    """Run the full BD pipeline for a company.
+
+    Generates all 5 BD artifacts in a single run:
+    1. Research Brief
+    2. Target Map
+    3. Outreach Drafts
+    4. Meeting Prep
+    5. Follow-up Summary
+
+    Modes:
+    - manual: Deterministic template-based generation (default, no API keys needed)
+    - llm: LLM-assisted generation (requires AG_LLM_ENABLED=1 and API keys)
+
+    Memory (M4/M5):
+    - --use-memory: Enable FTS5-based retrieval over stored sources/artifacts
+    - --url: Fetch URLs into sources before running pipeline
+    """
+    from agnetwork.eval.verifier import Verifier
+    from agnetwork.kernel import ExecutionMode, KernelExecutor, TaskSpec, TaskType
+
+    # Validate and parse mode
+    try:
+        exec_mode = ExecutionMode(mode.lower())
+    except ValueError:
+        typer.echo(f"❌ Invalid mode: {mode}. Use 'manual' or 'llm'", err=True)
+        raise typer.Exit(1)
+
+    # Check LLM mode requirements
+    llm_factory = None
+    if exec_mode == ExecutionMode.LLM:
+        from agnetwork.tools.llm import LLMFactory
+
+        llm_factory = LLMFactory.from_env()
+
+        if not llm_factory.is_enabled:
+            typer.echo(
+                "⚠️  LLM mode requested but AG_LLM_ENABLED=0. "
+                "Set AG_LLM_ENABLED=1 in your environment or .env file.",
+                err=True,
+            )
+            raise typer.Exit(1)
+
+        typer.echo(f"🤖 Running in LLM mode (provider: {llm_factory.config.default_provider})")
+
+    typer.echo(f"🚀 Running full BD pipeline for {company}...")
+
+    # M5: Fetch URLs if provided
+    captured_source_ids = []
+    if urls:
+        typer.echo(f"🌐 Fetching {len(urls)} URLs...")
+        from agnetwork.orchestrator import RunManager
+        from agnetwork.storage.sqlite import SQLiteManager
+        from agnetwork.tools.web import SourceCapture
+
+        # Create a temporary run to capture sources
+        temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"))
+        capture = SourceCapture(temp_run.run_dir / "sources")
+        db = SQLiteManager()
+
+        for url in urls:
+            typer.echo(f"   Fetching: {url[:60]}...")
+            result = capture.capture_url(url)
+            if result.is_success:
+                typer.echo(f"   ✅ {result.title or 'No title'}")
+                # Upsert to database for FTS indexing
+                db.upsert_source_from_capture(
+                    source_id=result.source_id,
+                    url=result.url,
+                    final_url=result.final_url,
+                    title=result.title,
+                    clean_text=result.clean_text,
+                    content_hash=result.content_hash,
+                    fetched_at=result.fetched_at.isoformat(),
+                    run_id=temp_run.run_id,
+                )
+                captured_source_ids.append(result.source_id)
+            else:
+                typer.echo(f"   ❌ Failed: {result.error}", err=True)
+
+        typer.echo(f"✅ Captured {len(captured_source_ids)} URLs")
+
+        # Enable memory automatically when URLs are provided
+        if captured_source_ids and not use_memory:
+            use_memory = True
+            typer.echo("🧠 Memory retrieval auto-enabled (URLs provided)")
+
+    # M4: Memory retrieval status
+    if use_memory:
+        typer.echo("🧠 Memory retrieval enabled (FTS5)")
+
+    # Build task spec
+    task_spec = TaskSpec(
+        task_type=TaskType.PIPELINE,
+        inputs={
+            "company": company,
+            "snapshot": snapshot or f"{company} - company snapshot",
+            "pains": pains or [],
+            "triggers": triggers or [],
+            "competitors": competitors or [],
+            "persona": persona,
+            "channel": channel,
+            "meeting_type": meeting_type,
+            "notes": notes,
+            "source_ids": captured_source_ids,  # M5: Pass captured source IDs
+        },
+    )
+
+    # Create executor with optional verifier and memory flag
+    verifier = Verifier() if verify else None
+    executor = KernelExecutor(
+        verifier=verifier,
+        mode=exec_mode,
+        llm_factory=llm_factory,
+        use_memory=use_memory,
+    )
+
+    # Execute pipeline
+    result = executor.execute_task(task_spec)
+
+    if result.success:
+        mode_label = "LLM" if exec_mode == ExecutionMode.LLM else "manual"
+        memory_label = " +memory" if result.memory_enabled else ""
+        urls_label = f" +{len(captured_source_ids)}urls" if captured_source_ids else ""
+        typer.echo(
+            f"✅ Pipeline completed successfully! (mode: {mode_label}{memory_label}{urls_label})"
+        )
+        typer.echo(f"📁 Run folder: {config.runs_dir / result.run_id}")
+        typer.echo(f"📄 Artifacts created: {len(result.artifacts_written)}")
+        for artifact in result.artifacts_written:
+            typer.echo(f"   - {artifact}")
+        if result.claims_persisted > 0:
+            typer.echo(f"📋 Claims persisted: {result.claims_persisted}")
+    else:
+        typer.echo("❌ Pipeline failed!")
+        for error in result.errors:
+            typer.echo(f"   Error: {error}", err=True)
+
+        if result.verification_issues:
+            typer.echo("Verification issues:")
+            for issue in result.verification_issues:
+                typer.echo(f"   - [{issue.get('severity')}] {issue.get('message')}")
+
+        raise typer.Exit(1)
+
+
+# Create memory subcommand group
+memory_app = Typer(help="Memory management commands (M5)")
+app.add_typer(memory_app, name="memory")
+
+
+@memory_app.command(name="rebuild-index")
+def memory_rebuild_index():
+    """Rebuild FTS5 search indexes from base tables.
+
+    Use this if FTS indexes get out of sync with sources/artifacts tables.
+    """
+    from agnetwork.storage.sqlite import SQLiteManager
+
+    typer.echo("🔧 Rebuilding FTS5 indexes...")
+
+    db = SQLiteManager()
+    db.rebuild_fts_index()
+
+    typer.echo("✅ FTS5 indexes rebuilt successfully!")
+
+
+@memory_app.command(name="search")
+def memory_search(
+    query: str = typer.Argument(..., help="Search query"),
+    sources_only: bool = typer.Option(False, "--sources", "-s", help="Search sources only"),
+    artifacts_only: bool = typer.Option(False, "--artifacts", "-a", help="Search artifacts only"),
+    limit: int = typer.Option(10, "--limit", "-l", help="Maximum results"),
+):
+    """Search stored sources and artifacts using FTS5.
+
+    Examples:
+        ag memory search "machine learning"
+        ag memory search "VP Sales" --artifacts
+        ag memory search "cloud solutions" --sources --limit 5
+    """
+    from agnetwork.storage.sqlite import SQLiteManager
+
+    db = SQLiteManager()
+
+    if not artifacts_only:
+        typer.echo("\n📚 Sources:")
+        sources = db.search_sources_fts(query, limit=limit)
+        if sources:
+            for s in sources:
+                title = s.get("title") or s.get("id")
+                excerpt = s.get("excerpt", "")[:80]
+                typer.echo(f"  [{s['id']}] {title}")
+                if excerpt:
+                    typer.echo(f"      {excerpt}...")
+        else:
+            typer.echo("  No matches found")
+
+    if not sources_only:
+        typer.echo("\n📄 Artifacts:")
+        artifacts = db.search_artifacts_fts(query, limit=limit)
+        if artifacts:
+            for a in artifacts:
+                typer.echo(f"  [{a['id']}] {a.get('name', '')} ({a.get('artifact_type', '')})")
+                excerpt = a.get("excerpt", "")[:80]
+                if excerpt:
+                    typer.echo(f"      {excerpt}...")
+        else:
+            typer.echo("  No matches found")
 
 
 if __name__ == "__main__":

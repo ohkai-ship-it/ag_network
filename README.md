@@ -1,8 +1,8 @@
 # AG Network - Autonomous Business Development Agent
 
-**Status**: ✅ **v0.1 Complete** + **M1 Platform Hardening**  
+**Status**: ✅ **v0.1 + M1 + M2 + M3 Complete**  
 **Package**: `agnetwork`  
-**Documentation**: `COMPLETION_SUMMARY.md`, `PROTOCOL.md`
+**Documentation**: `COMPLETION_SUMMARY.md`, `M3_COMPLETION_SUMMARY.md`, `PROTOCOL.md`
 
 ---
 
@@ -12,19 +12,25 @@
 # Install (one-time)
 pip install -e .
 
-# Run a command
-bd research "Your Company" \
+# Install with LLM support (optional)
+pip install -e ".[llm]"
+
+# Run a command (manual mode - deterministic)
+ag research "Your Company" \
   --snapshot "Description" \
   --pain "Problem 1" \
   --trigger "Event 1" \
   --competitor "Rival"
+
+# Run full pipeline with LLM mode (requires API key)
+AG_LLM_ENABLED=1 ag run-pipeline "Your Company" --snapshot "Description" --mode llm
 
 # Check results
 ls runs/
 cat runs/<latest>/artifacts/research_brief.md
 
 # Validate a run
-bd validate-run runs/<run_folder>
+ag validate-run runs/<run_folder>
 ```
 
 ---
@@ -34,32 +40,33 @@ bd validate-run runs/<run_folder>
 ```
 ag_network/
 ├── README.md                      ← This file
-├── COMPLETION_SUMMARY.md          ← Full project summary
+├── COMPLETION_SUMMARY.md          ← v0.1 project summary
+├── M3_COMPLETION_SUMMARY.md       ← LLM tooling summary (NEW)
 ├── PROTOCOL.md                    ← Execution log
 ├── pyproject.toml                 ← Dependencies
 ├── .github/workflows/ci.yml       ← CI pipeline (ruff + pytest)
 │
 ├── src/agnetwork/                 ← Source code
-│   ├── cli.py                     ← CLI commands (7 total)
-│   ├── config.py                  ← Configuration
+│   ├── cli.py                     ← CLI commands (8 total)
+│   ├── config.py                  ← Configuration + LLMConfig
 │   ├── orchestrator.py            ← Run system & logging
-│   ├── versioning.py              ← Artifact/skill versioning (M1)
-│   ├── validate.py                ← Run validation (M1)
+│   ├── versioning.py              ← Artifact/skill versioning
+│   ├── validate.py                ← Run validation
+│   ├── kernel/                    ← Task/Plan/Executor (M2)
+│   │   ├── models.py              ← TaskSpec, Plan, Step, ExecutionMode
+│   │   ├── executor.py            ← KernelExecutor
+│   │   └── llm_executor.py        ← LLMSkillExecutor (M3)
+│   ├── tools/llm/                 ← LLM integration (M3)
+│   │   ├── adapters/              ← Anthropic, OpenAI, Fake
+│   │   ├── factory.py             ← Role-based routing
+│   │   └── structured.py          ← JSON parse + repair
+│   ├── prompts/                   ← Prompt library (M3)
 │   ├── models/core.py             ← Pydantic models
 │   ├── storage/sqlite.py          ← Database operations
 │   ├── tools/ingest.py            ← Source ingestion
-│   └── skills/research_brief.py   ← Skill implementations
+│   └── skills/                    ← Skill implementations
 │
-├── tests/                         ← Tests (33 passing)
-│   ├── test_models.py
-│   ├── test_orchestrator.py
-│   ├── test_skills.py
-│   ├── test_versioning.py         ← Versioning tests (M1)
-│   ├── test_validate.py           ← Validation tests (M1)
-│   └── golden/                    ← Golden run tests (M1)
-│       └── test_golden_runs.py
-│
-├── data/bd.sqlite                 ← Database
+├── tests/                         ← Tests (116 passing)
 └── runs/                          ← Execution artifacts
 ```
 
@@ -67,15 +74,16 @@ ag_network/
 
 ## Features
 
-✅ **7 CLI Commands**: research, targets, outreach, prep, followup, status, validate-run  
+✅ **8 CLI Commands**: research, targets, outreach, prep, followup, status, validate-run, run-pipeline  
+✅ **Execution Modes**: Manual (deterministic) or LLM (AI-assisted)  
+✅ **LLM Integration**: Anthropic Claude, OpenAI GPT, Fake adapter for testing  
+✅ **Structured Output**: Pydantic validation + repair loop  
 ✅ **Run System**: Timestamped, immutable, auditable runs  
 ✅ **Artifacts**: Markdown + JSON outputs with version metadata  
 ✅ **Logging**: JSONL worklog + JSON status tracking  
 ✅ **Database**: SQLite for sources & traceability  
 ✅ **CI Pipeline**: GitHub Actions for ruff + pytest  
-✅ **Golden Tests**: Regression tests for artifact structure  
-✅ **Validation**: CLI command to validate run integrity  
-✅ **Tests**: 33/33 passing, 0 lint errors
+✅ **Tests**: 116 passing, 0 lint errors
 
 ---
 
@@ -83,13 +91,35 @@ ag_network/
 
 | Command | Description |
 |---------|-------------|
-| `bd research <company>` | Generate account research brief |
-| `bd targets <company>` | Create prospect target map |
-| `bd outreach <company>` | Draft outreach messages |
-| `bd prep <company>` | Prepare meeting pack |
-| `bd followup <company>` | Create post-meeting follow-up |
-| `bd status` | Show recent runs |
-| `bd validate-run <path>` | Validate run folder integrity |
+| `ag research <company>` | Generate account research brief |
+| `ag targets <company>` | Create prospect target map |
+| `ag outreach <company>` | Draft outreach messages |
+| `ag prep <company>` | Prepare meeting pack |
+| `ag followup <company>` | Create post-meeting follow-up |
+| `ag status` | Show recent runs |
+| `ag validate-run <path>` | Validate run folder integrity |
+| `ag run-pipeline <company>` | Run full BD pipeline (supports `--mode llm`) |
+
+---
+
+## LLM Mode (M3)
+
+Enable AI-assisted generation with:
+
+```bash
+# Set environment variables
+export AG_LLM_ENABLED=1
+export ANTHROPIC_API_KEY=sk-ant-...  # or OPENAI_API_KEY
+
+# Run pipeline with LLM
+ag run-pipeline "TestCorp" --snapshot "AI startup" --mode llm
+```
+
+See [M3_COMPLETION_SUMMARY.md](M3_COMPLETION_SUMMARY.md) for full details on:
+- Role configuration (draft, critic, extractor)
+- Structured output flow
+- Testing with FakeAdapter
+- Safety notes
 
 ---
 
@@ -110,11 +140,11 @@ ag_network/
 ## Testing
 
 ```bash
-# Run all tests
+# Run all tests (116 passing)
 pytest tests/ -v
 
-# Run golden tests only
-pytest tests/golden/ -v
+# Run LLM-specific tests
+pytest tests/test_llm_*.py -v
 
 # Lint check
 ruff check .
@@ -205,10 +235,10 @@ runs/
 
 ## Next Steps
 
-1. **Test** the CLI: `bd research "Test Company" --snapshot "..."`
-2. **Check** test results: `pytest tests/ -v`
-3. **Validate** runs: `bd validate-run runs/<folder>`
-4. **Plan** M2: Agent Kernel + Skill Contract Standardization
+1. **Test** the CLI: `ag research "Test Company" --snapshot "..."`
+2. **Try LLM mode**: Set `AG_LLM_ENABLED=1` and run with `--mode llm`
+3. **Check** test results: `pytest tests/ -v`
+4. **Plan** M4: Retrieval / RAG for web evidence
 
 ---
 
@@ -216,11 +246,11 @@ runs/
 
 - **How does it work?** → See [PROTOCOL.md](PROTOCOL.md)
 - **What was built?** → See [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md)
-- **What's the architecture?** → See `src/agnetwork/`
+- **LLM integration?** → See [M3_COMPLETION_SUMMARY.md](M3_COMPLETION_SUMMARY.md)
 
 ---
 
 **Built with Master Orchestrator Protocol** ✅  
-v0.1 + M1 Platform Hardening Complete
+v0.1 + M1 + M2 + M3 Complete
 
 ---

@@ -1,4 +1,4 @@
-"""Run management and logging for BD Copilot."""
+"""Run management and logging for AG Network."""
 
 import json
 import logging

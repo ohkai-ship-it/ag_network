@@ -1,4 +1,9 @@
-"""Validation utilities for run folders and logging."""
+"""Validation utilities for run folders and logging.
+
+M4 additions:
+- Claim evidence validation
+- Source existence checks
+"""
 
 import json
 from pathlib import Path
@@ -240,12 +245,17 @@ def _validate_artifacts_dir(
             )
 
 
-def validate_run_folder(run_path: Path, require_meta: bool = False) -> ValidationResult:
+def validate_run_folder(
+    run_path: Path,
+    require_meta: bool = False,
+    check_evidence: bool = False,
+) -> ValidationResult:
     """Validate an entire run folder for integrity.
 
     Args:
         run_path: Path to run folder
         require_meta: Whether to require meta blocks in artifacts
+        check_evidence: Whether to check claim evidence (M4)
 
     Returns:
         ValidationResult with all errors and warnings
@@ -276,4 +286,51 @@ def validate_run_folder(run_path: Path, require_meta: bool = False) -> Validatio
     if artifacts_dir.exists():
         _validate_artifacts_dir(artifacts_dir, result, require_meta)
 
+    # M4: Validate claim evidence if requested
+    if check_evidence:
+        _validate_claim_evidence(run_path, result)
+
     return result
+
+
+def _validate_claim_evidence(run_path: Path, result: ValidationResult) -> None:
+    """Validate claim evidence consistency (M4).
+
+    Checks that:
+    - Artifacts referenced by claims exist
+    - Sources referenced in claims exist in DB
+
+    This is a lightweight check that doesn't fail for manual runs.
+
+    Args:
+        run_path: Path to run folder
+        result: ValidationResult to add errors/warnings to
+    """
+    from agnetwork.storage.sqlite import SQLiteManager, normalize_source_ids
+
+    try:
+        db = SQLiteManager()
+    except Exception as e:
+        result.add_warning(str(run_path), f"Cannot connect to database: {e}")
+        return
+
+    # Extract run_id from path
+    run_id = run_path.name
+
+    # Get artifacts for this run
+    artifacts = db.get_artifacts_by_run(run_id)
+
+    # Check claims for each artifact
+    for artifact in artifacts:
+        claims = db.get_claims_by_artifact(artifact["id"])
+
+        for claim in claims:
+            # Check source_ids exist
+            source_ids = normalize_source_ids(claim.get("source_ids"))
+
+            for source_id in source_ids:
+                if not db.source_exists(source_id):
+                    result.add_warning(
+                        str(run_path),
+                        f"Claim references non-existent source: {source_id}",
+                    )

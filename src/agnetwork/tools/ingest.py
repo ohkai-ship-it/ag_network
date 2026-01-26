@@ -1,7 +1,7 @@
 """Source ingestion tools."""
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 from uuid import uuid4
@@ -32,7 +32,7 @@ class SourceIngestor:
             "source_type": "pasted_text",
             "title": title or "Pasted text",
             "content": content,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "metadata": {"company": company} if company else {},
         }
 
@@ -68,7 +68,7 @@ class SourceIngestor:
             "source_type": "file",
             "title": file_path.name,
             "content": content,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "metadata": {"original_path": str(file_path), "company": company},
         }
 
@@ -103,7 +103,7 @@ class SourceIngestor:
             "source_type": "url",
             "title": title or url,
             "content": content,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "metadata": {"url": url, "company": company},
         }
 
