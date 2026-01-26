@@ -1,9 +1,10 @@
-# BD Copilot v0.1 - Master Orchestrator Protocol Execution Log
+# AG Network v0.1 - Master Orchestrator Protocol Execution Log
 
-**Project**: BD Copilot (Business Development Workflow Assistant)  
-**Version**: 0.1.0  
+**Project**: AG Network (Business Development Workflow Assistant)  
+**Version**: 0.1.0 + M1 Platform Hardening  
+**Package**: `agnetwork`  
 **Date Started**: 2026-01-25  
-**Status**: ✅ Phase 2 Complete (All Core Commands Implemented)
+**Status**: ✅ Phase 2 Complete + M1 Complete
 
 ---
 
@@ -22,6 +23,7 @@
 | **3: Quality** | ✅ Complete | 100% | 7/7 tests passing, ruff clean, zero lint errors |
 | **4: Integration** | ✅ Complete | 100% | End-to-end CLI test: `bd research` generates artifacts |
 | **5: Documentation** | ✅ Complete | 100% | README.md with setup, commands, examples, anatomy |
+| **M1: Hardening** | ✅ Complete | 100% | CI, versioning, golden tests, validation (33 tests) |
 
 ---
 
@@ -219,10 +221,13 @@
 - `test_models.py`: 3 tests (ResearchBrief, TargetMap, OutreachDraft)
 - `test_orchestrator.py`: 3 tests (RunManager init, logging, artifacts)
 - `test_skills.py`: 1 test (ResearchBriefSkill generation)
+- `test_versioning.py`: 6 tests (M1)
+- `test_validate.py`: 14 tests (M1)
+- `test_golden_runs.py`: 7 tests (M1)
 
 **Test Results**:
 ```
-========================================= 7 passed, 7 warnings in 0.38s ==========
+========================================= 33 passed, 3 warnings in 0.54s ==========
 ```
 
 **Linting**:
@@ -304,6 +309,10 @@ All v0.1 requirements met:
 | Ruff clean | ✅ | Zero lint errors |
 | No secrets in repo | ✅ | .env excluded, config safe |
 | README complete | ✅ | Setup, commands, examples, anatomy |
+| CI pipeline | ✅ | GitHub Actions for ruff + pytest (M1) |
+| Artifact versioning | ✅ | Meta block in all JSON artifacts (M1) |
+| Golden tests | ✅ | Regression tests for artifact structure (M1) |
+| Validation CLI | ✅ | `bd validate-run` command (M1) |
 
 ---
 
@@ -333,10 +342,10 @@ All v0.1 requirements met:
 
 | Metric | Value |
 |--------|-------|
-| Total Files Created | 20+ |
-| Lines of Code (src/) | ~800 |
-| Test Coverage (functions) | 7/7 tests covering core |
-| Test Execution Time | 0.38s |
+| Total Files Created | 25+ |
+| Lines of Code (src/) | ~1000 |
+| Test Coverage (functions) | 33/33 tests covering core |
+| Test Execution Time | 0.54s |
 | Lint Status | ✅ Pass (0 errors) |
 | CLI Startup Time | <0.5s |
 | DB Initialization | <10ms |
@@ -363,22 +372,27 @@ All v0.1 requirements met:
 
 ## Sign-Off
 
-**Phase 2 Complete**: Master Orchestrator Protocol fully executed for v0.1
+**Phase 2 + M1 Complete**: Master Orchestrator Protocol fully executed for v0.1 + M1 Platform Hardening
 
 ✅ All infrastructure in place  
 ✅ All core commands implemented and tested  
 ✅ Run system (logging, status, artifacts) operational  
-✅ Quality gates passed (tests, lint, safety)  
+✅ Artifact versioning (meta block in all JSON)  
+✅ CI pipeline (GitHub Actions)  
+✅ Golden run tests (regression safety)  
+✅ Validation CLI command  
+✅ Quality gates passed (33 tests, lint, safety)  
 ✅ Documentation complete  
-✅ Ready for v0.2 feature expansion
+✅ Ready for M2 Agent Kernel
 
 **Build Artifacts Preserved**:
-- Source code: `bd-copilot/src/`
-- Tests: `bd-copilot/tests/`
-- Example runs: `bd-copilot/runs/` (timestamped, immutable)
-- Database: `bd-copilot/data/bd.sqlite`
+- Source code: `src/agnetwork/`
+- Tests: `tests/`
+- Example runs: `runs/` (timestamped, immutable)
+- Database: `data/bd.sqlite`
+- CI: `.github/workflows/ci.yml`
 
 ---
 
 **End of Protocol Execution Log**  
-Date: 2026-01-25 | Time: 14:37 UTC
+Date: 2026-01-25 | Time: 16:30 UTC

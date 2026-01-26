@@ -1,8 +1,8 @@
-# BD Copilot v0.1 - Project Completion Summary
+# AG Network v0.1 - Project Completion Summary
 
-**Status**: ✅ **COMPLETE** - All Phase 2 deliverables achieved  
+**Status**: ✅ **COMPLETE** - All Phase 2 deliverables achieved + M1 Platform Hardening  
 **Date**: January 25, 2026  
-**Execution Time**: ~2 hours (Master Orchestrator Protocol)
+**Package**: `agnetwork`
 
 ---
 
@@ -10,13 +10,15 @@
 
 A **production-ready CLI tool** for autonomous business development workflows with:
 
-- ✅ **5 core commands** (research, targets, outreach, prep, followup)
+- ✅ **7 CLI commands** (research, targets, outreach, prep, followup, status, validate-run)
 - ✅ **Run system** with immutable, timestamped execution folders
-- ✅ **Artifact generation** (Markdown + JSON for each output)
+- ✅ **Artifact generation** (Markdown + JSON with version metadata)
 - ✅ **Logging infrastructure** (JSONL worklog + JSON status)
 - ✅ **Traceability** (SQLite database tracking sources and claims)
-- ✅ **Full test coverage** (7/7 tests passing)
+- ✅ **Full test coverage** (33/33 tests passing)
 - ✅ **Zero lint errors** (ruff clean)
+- ✅ **CI pipeline** (GitHub Actions for ruff + pytest)
+- ✅ **Golden tests** (regression tests for artifact structure)
 - ✅ **Complete documentation** (README + PROTOCOL logs)
 
 ---
@@ -24,67 +26,75 @@ A **production-ready CLI tool** for autonomous business development workflows wi
 ## Project Structure
 
 ```
-bd-copilot/
+ag_network/
 ├── README.md                           # User guide, setup, examples
-├── PROTOCOL.md                          # This execution log
-├── pyproject.toml                       # Dependencies, build config
-├── .env.example                         # Config template (safe)
-├── .gitignore                           # Exclude secrets, runs, cache
+├── PROTOCOL.md                         # Execution log
+├── COMPLETION_SUMMARY.md               # This file
+├── pyproject.toml                      # Dependencies, build config
+├── .env.example                        # Config template (safe)
+├── .gitignore                          # Exclude secrets, runs, cache
+├── .github/workflows/ci.yml            # CI pipeline (M1)
 │
 ├── src/agnetwork/
-│   ├── __init__.py                      # Package version
-│   ├── cli.py                           # Typer CLI (5 commands)
-│   ├── config.py                        # Config management
-│   ├── orchestrator.py                  # RunManager, logging
+│   ├── __init__.py                     # Package version
+│   ├── cli.py                          # Typer CLI (7 commands)
+│   ├── config.py                       # Config management
+│   ├── orchestrator.py                 # RunManager, logging
+│   ├── versioning.py                   # Artifact versioning (M1)
+│   ├── validate.py                     # Run validation (M1)
 │   │
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── core.py                      # Pydantic models (7 types)
+│   │   └── core.py                     # Pydantic models (7 types)
 │   │
 │   ├── storage/
 │   │   ├── __init__.py
-│   │   └── sqlite.py                    # Database ops
+│   │   └── sqlite.py                   # Database ops
 │   │
 │   ├── tools/
 │   │   ├── __init__.py
-│   │   └── ingest.py                    # Source ingestion
+│   │   └── ingest.py                   # Source ingestion
 │   │
 │   ├── skills/
 │   │   ├── __init__.py
-│   │   └── research_brief.py            # Jinja2 templates
+│   │   └── research_brief.py           # Jinja2 templates
 │   │
-│   ├── templates/                       # (prepared for v0.2)
-│   └── eval/                            # (prepared for v0.2)
+│   ├── templates/                      # (prepared for v0.2)
+│   └── eval/                           # (prepared for v0.2)
 │
 ├── tests/
-│   ├── conftest.py                      # Pytest fixtures
-│   ├── test_models.py                   # 3 model tests
-│   ├── test_orchestrator.py             # 3 orchestrator tests
-│   └── test_skills.py                   # 1 skill test
+│   ├── conftest.py                     # Pytest fixtures
+│   ├── test_models.py                  # 3 model tests
+│   ├── test_orchestrator.py            # 3 orchestrator tests
+│   ├── test_skills.py                  # 1 skill test
+│   ├── test_versioning.py              # 6 versioning tests (M1)
+│   ├── test_validate.py                # 14 validation tests (M1)
+│   └── golden/
+│       └── test_golden_runs.py         # 7 golden run tests (M1)
 │
 ├── data/
-│   └── bd.sqlite                        # SQLite database
+│   └── bd.sqlite                       # SQLite database
 │
-└── runs/                                 # Execution artifacts
+└── runs/                               # Execution artifacts
     ├── 20260125_143654__techcorp__research/
     │   ├── inputs.json
     │   ├── sources/
     │   ├── artifacts/
     │   │   ├── research_brief.md
-    │   │   └── research_brief.json
+    │   │   └── research_brief.json     # Now includes meta block
     │   └── logs/
     │       ├── run.log
     │       ├── agent_worklog.jsonl
     │       └── agent_status.json
-    └── 20260125_143717__techcorp__targets/
-        └── ...
+    └── ...
+```
 ```
 
 ---
 
 ## Features Implemented
 
-### 1. CLI Commands (5/5)
+### 1. CLI Commands (7/7)
 
 | Command | Status | Inputs | Outputs |
 |---------|--------|--------|---------|
@@ -94,6 +104,7 @@ bd-copilot/
 | `bd prep <co>` | ✅ Works | meeting_type | prep.md, prep.json |
 | `bd followup <co>` | ✅ Works | notes | followup.md, followup.json |
 | `bd status` | ✅ Works | (none) | List recent runs |
+| `bd validate-run` | ✅ Works | run_path | Validation report (M1) |
 
 ### 2. Run System
 
@@ -121,18 +132,19 @@ bd-copilot/
 
 ### 5. Quality Assurance
 
-- ✅ 7 tests (models, orchestrator, skills)
+- ✅ 33 tests (models, orchestrator, skills, versioning, validation, golden runs)
 - ✅ 100% pass rate
 - ✅ Zero lint errors (ruff)
 - ✅ Proper cleanup (Windows-safe)
 - ✅ Type hints throughout
+- ✅ CI pipeline (GitHub Actions)
 
 ---
 
 ## Test Results
 
 ```
-======================================= 7 passed, 7 warnings in 0.38s ===========
+======================================= 33 passed, 3 warnings in 0.54s ===========
 
 ✅ test_research_brief_model
 ✅ test_target_map_model
@@ -141,6 +153,14 @@ bd-copilot/
 ✅ test_run_manager_logging
 ✅ test_run_manager_artifacts
 ✅ test_research_brief_skill_generation
+✅ test_get_skill_version_known (M1)
+✅ test_get_skill_version_unknown (M1)
+✅ test_create_artifact_meta (M1)
+✅ test_create_artifact_meta_with_overrides (M1)
+✅ test_inject_meta (M1)
+✅ test_inject_meta_does_not_modify_original (M1)
+✅ 14 validation tests (M1)
+✅ 7 golden run tests (M1)
 ```
 
 ---
@@ -218,7 +238,14 @@ Fortune 500 SaaS provider with 50k employees
     {"name": "Market Expansion", "fact": "TechCorp is expanding into new markets", "is_assumption": true},
     {"name": "Cost Optimization", "fact": "TechCorp seeks to optimize operational costs", "is_assumption": true},
     {"name": "Digital Transformation", "fact": "TechCorp is undergoing digital transformation", "is_assumption": true}
-  ]
+  ],
+  "meta": {
+    "artifact_version": "1.0",
+    "skill_name": "research_brief",
+    "skill_version": "1.0",
+    "generated_at": "2026-01-25T16:27:18.252124+00:00",
+    "run_id": "20260125_162718__techcorp__research"
+  }
 }
 ```
 
@@ -296,13 +323,12 @@ All pinned to compatible versions:
 
 ### Installation
 ```bash
-cd bd-copilot
 pip install -e .
 ```
 
 ### Run a Command
 ```bash
-python -m agnetwork.cli research "Your Company" \
+bd research "Your Company" \
   --snapshot "Your description" \
   --pain "Pain point 1" \
   --trigger "Trigger"
@@ -310,8 +336,14 @@ python -m agnetwork.cli research "Your Company" \
 
 ### Check Results
 ```bash
-ls runs/latest/artifacts/
-cat runs/latest/artifacts/research_brief.md
+ls runs/
+cat runs/<latest>/artifacts/research_brief.md
+```
+
+### Validate a Run
+```bash
+bd validate-run runs/<run_folder>
+bd validate-run runs/<run_folder> --require-meta
 ```
 
 ### Run Tests
@@ -321,7 +353,7 @@ pytest tests/ -v
 
 ### Check Quality
 ```bash
-ruff check src/ tests/
+ruff check .
 ```
 
 ---
@@ -330,11 +362,11 @@ ruff check src/ tests/
 
 | Metric | Value |
 |--------|-------|
-| Total Files | 20+ |
-| Source Code (lines) | ~800 |
-| Test Code (lines) | ~200 |
+| Total Files | 25+ |
+| Source Code (lines) | ~1000 |
+| Test Code (lines) | ~600 |
 | Documentation (lines) | 1000+ |
-| Test Pass Rate | 100% (7/7) |
+| Test Pass Rate | 100% (33/33) |
 | Lint Errors | 0 |
 | Code Coverage (scope) | Core functions |
 | CLI Startup Time | <0.5s |
@@ -344,26 +376,32 @@ ruff check src/ tests/
 
 ## Files Delivered
 
-### Source Code (13 files)
+### Source Code (15 files)
 - [src/agnetwork/__init__.py](src/agnetwork/__init__.py)
-- [src/agnetwork/cli.py](src/agnetwork/cli.py) - 230 lines
+- [src/agnetwork/cli.py](src/agnetwork/cli.py) - 340 lines
 - [src/agnetwork/config.py](src/agnetwork/config.py) - 45 lines
-- [src/agnetwork/orchestrator.py](src/agnetwork/orchestrator.py) - 130 lines
+- [src/agnetwork/orchestrator.py](src/agnetwork/orchestrator.py) - 160 lines
+- [src/agnetwork/versioning.py](src/agnetwork/versioning.py) - 80 lines (M1)
+- [src/agnetwork/validate.py](src/agnetwork/validate.py) - 250 lines (M1)
 - [src/agnetwork/models/core.py](src/agnetwork/models/core.py) - 100 lines
 - [src/agnetwork/storage/sqlite.py](src/agnetwork/storage/sqlite.py) - 120 lines
 - [src/agnetwork/tools/ingest.py](src/agnetwork/tools/ingest.py) - 130 lines
 - [src/agnetwork/skills/research_brief.py](src/agnetwork/skills/research_brief.py) - 80 lines
 
-### Tests (4 files)
+### Tests (6 files)
 - [tests/conftest.py](tests/conftest.py)
 - [tests/test_models.py](tests/test_models.py)
 - [tests/test_orchestrator.py](tests/test_orchestrator.py)
 - [tests/test_skills.py](tests/test_skills.py)
+- [tests/test_versioning.py](tests/test_versioning.py) (M1)
+- [tests/test_validate.py](tests/test_validate.py) (M1)
+- [tests/golden/test_golden_runs.py](tests/golden/test_golden_runs.py) (M1)
 
-### Configuration (3 files)
+### Configuration (4 files)
 - [pyproject.toml](pyproject.toml) - Build config
 - [.env.example](.env.example) - Config template
 - [.gitignore](.gitignore) - Git safety
+- [.github/workflows/ci.yml](.github/workflows/ci.yml) - CI pipeline (M1)
 
 ### Documentation (3 files)
 - [README.md](README.md) - User guide (500+ lines)
@@ -376,28 +414,32 @@ ruff check src/ tests/
 
 1. **Review this code** in your IDE
 2. **Test a command**: `bd research "Test Company" --snapshot "..."`
-3. **Check logs**: `ls runs/latest/logs/`
+3. **Check logs**: `ls runs/<latest>/logs/`
 4. **Run tests**: `pytest tests/ -v`
-5. **Plan v0.2**: LLM integration, web scraping, automation
+5. **Validate runs**: `bd validate-run runs/<folder>`
+6. **Plan M2**: Agent Kernel + Skill Contract Standardization
 
 ---
 
 ## Success Criteria Met ✅
 
-- [x] All 5 commands implemented and tested
-- [x] Artifacts generated (MD + JSON)
+- [x] All 7 commands implemented and tested
+- [x] Artifacts generated (MD + JSON with meta)
 - [x] Logging system operational (worklog + status)
 - [x] Database and traceability working
-- [x] Tests pass (7/7, 0 failures)
+- [x] Tests pass (33/33, 0 failures)
 - [x] Lint passes (ruff clean)
 - [x] No secrets in code
 - [x] Documentation complete
 - [x] End-to-end integration working
 - [x] Protocol execution logged
+- [x] CI pipeline (GitHub Actions)
+- [x] Golden run tests
+- [x] Artifact versioning
 
 ---
 
-**BD Copilot v0.1 is production-ready for local use.**
+**AG Network v0.1 + M1 is production-ready for local use.**
 
 Built with the **Master Orchestrator Protocol** ✅
 

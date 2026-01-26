@@ -3,10 +3,11 @@
 import json
 import logging
 import logging.handlers
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from agnetwork.config import config
+from agnetwork.versioning import inject_meta
 
 
 class RunManager:
@@ -16,7 +17,7 @@ class RunManager:
         """Initialize a new run session."""
         self.command = command
         self.slug = slug
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
         self.run_id = f"{self.timestamp.strftime('%Y%m%d_%H%M%S')}__{slug}__{command}"
         self.run_dir = config.runs_dir / self.run_id
 
@@ -91,7 +92,7 @@ class RunManager:
     ) -> None:
         """Log an action to the worklog."""
         entry = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "phase": phase,
             "action": action,
             "status": status,
@@ -114,17 +115,37 @@ class RunManager:
             json.dump(inputs, f, indent=2, default=str)
 
     def save_artifact(
-        self, artifact_name: str, markdown_content: str, json_data: Dict[str, Any]
+        self,
+        artifact_name: str,
+        markdown_content: str,
+        json_data: Dict[str, Any],
+        skill_name: Optional[str] = None,
     ) -> None:
-        """Save both markdown and JSON versions of an artifact."""
+        """Save both markdown and JSON versions of an artifact.
+
+        Args:
+            artifact_name: Name of the artifact file (without extension)
+            markdown_content: Markdown content to save
+            json_data: JSON data to save (will have meta field injected)
+            skill_name: Name of the skill that generated this artifact
+                        (defaults to artifact_name if not provided)
+        """
         md_file = self.run_dir / "artifacts" / f"{artifact_name}.md"
         json_file = self.run_dir / "artifacts" / f"{artifact_name}.json"
 
         with open(md_file, "w") as f:
             f.write(markdown_content)
 
+        # Inject version metadata into JSON
+        versioned_data = inject_meta(
+            json_data=json_data,
+            artifact_name=artifact_name,
+            skill_name=skill_name or artifact_name,
+            run_id=self.run_id,
+        )
+
         with open(json_file, "w") as f:
-            json.dump(json_data, f, indent=2, default=str)
+            json.dump(versioned_data, f, indent=2, default=str)
 
         self.logger.info(f"Saved artifact: {artifact_name}")
 
@@ -137,7 +158,7 @@ class RunManager:
             if key in status:
                 status[key] = value
 
-        status["last_updated"] = datetime.utcnow().isoformat()
+        status["last_updated"] = datetime.now(timezone.utc).isoformat()
 
         with open(self.status_path, "w") as f:
             json.dump(status, f, indent=2)

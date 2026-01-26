@@ -1,15 +1,19 @@
 # Complete Project Plan: Work + Private Life Agent (BD-first)
 
-## 0) Starting point (v0.1 baseline)
+## 0) Starting point (v0.1 baseline + M1)
 
-Your repo is already **v0.1 complete** with:
+Your repo is already **v0.1 + M1 complete** with:
 
-- **CLI commands**: `research / targets / outreach / prep / followup` (+ `status`)
+- **Package**: `agnetwork`
+- **CLI commands**: `research / targets / outreach / prep / followup / status / validate-run`
 - **Run system**: immutable timestamped folders with `inputs.json`, `sources/`, `artifacts/`, `logs/`
-- **Artifacts**: Markdown + JSON per command
+- **Artifacts**: Markdown + JSON per command (with version metadata)
 - **Logging**: `agent_worklog.jsonl` + `agent_status.json`
 - **SQLite traceability**: `sources, companies, artifacts, claims`
-- **Quality**: tests passing + ruff clean
+- **Quality**: 33 tests passing + ruff clean
+- **CI pipeline**: GitHub Actions for ruff + pytest (M1)
+- **Golden tests**: Regression tests for artifact structure (M1)
+- **Validation**: `bd validate-run` command (M1)
 - **Known limitations**: no web scraping, no LLM generation yet
 
 This is the foundation we will extend without breaking.
@@ -123,19 +127,20 @@ RAG is not a substitute for web freshness; it amplifies *your own knowledge base
 
 ---
 
-### M1 — Platform hardening (durable foundation)
+### M1 — Platform hardening ✅ (done)
 
 **Goal:** make changes safe and regression-proof.
 
 **Deliverables**
-- CI pipeline for `ruff + pytest`
-- Artifact schema versioning (`artifact_version`, `skill_version`)
-- “Golden runs” regression tests (expected output structure)
-- Logging consistency checks (status/worklog invariants)
+- ✅ CI pipeline for `ruff + pytest` (`.github/workflows/ci.yml`)
+- ✅ Artifact schema versioning (`artifact_version`, `skill_version` in meta block)
+- ✅ "Golden runs" regression tests (`tests/golden/test_golden_runs.py`)
+- ✅ Logging consistency checks (`bd validate-run` command)
 
 **DoD**
-- Any breaking change gets caught by CI or golden tests
-- Refactors don’t silently change outputs
+- ✅ Any breaking change gets caught by CI or golden tests
+- ✅ Refactors don't silently change outputs
+- ✅ 33 tests passing
 
 ---
 

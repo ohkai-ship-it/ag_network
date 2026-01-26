@@ -1,29 +1,30 @@
-# BD Copilot - Autonomous Business Development Agent
+# AG Network - Autonomous Business Development Agent
 
-**Status**: ✅ **v0.1 Complete** - Production Ready  
-**Location**: `./bd-copilot/`  
-**Documentation**: `COMPLETION_SUMMARY.md` (this folder), `bd-copilot/README.md`, `bd-copilot/PROTOCOL.md`
+**Status**: ✅ **v0.1 Complete** + **M1 Platform Hardening**  
+**Package**: `agnetwork`  
+**Documentation**: `COMPLETION_SUMMARY.md`, `PROTOCOL.md`
 
 ---
 
 ## Quick Start
 
 ```bash
-cd bd-copilot
-
 # Install (one-time)
 pip install -e .
 
 # Run a command
-python -m agnetwork.cli research "Your Company" \
+bd research "Your Company" \
   --snapshot "Description" \
   --pain "Problem 1" \
   --trigger "Event 1" \
   --competitor "Rival"
 
 # Check results
-ls runs/latest/artifacts/
-cat runs/latest/artifacts/research_brief.md
+ls runs/
+cat runs/<latest>/artifacts/research_brief.md
+
+# Validate a run
+bd validate-run runs/<run_folder>
 ```
 
 ---
@@ -32,29 +33,63 @@ cat runs/latest/artifacts/research_brief.md
 
 ```
 ag_network/
+├── README.md                      ← This file
 ├── COMPLETION_SUMMARY.md          ← Full project summary
-├── Cursor_Prompt_BD_Copilot...md  ← Original specification
-└── bd-copilot/                    ← Main project
-    ├── README.md                  ← User guide
-    ├── PROTOCOL.md                ← Execution log
-    ├── pyproject.toml             ← Dependencies
-    ├── src/agnetwork/             ← Source code (13 files)
-    ├── tests/                     ← Tests (7 passing)
-    ├── data/bd.sqlite             ← Database
-    └── runs/                      ← Execution artifacts
+├── PROTOCOL.md                    ← Execution log
+├── pyproject.toml                 ← Dependencies
+├── .github/workflows/ci.yml       ← CI pipeline (ruff + pytest)
+│
+├── src/agnetwork/                 ← Source code
+│   ├── cli.py                     ← CLI commands (7 total)
+│   ├── config.py                  ← Configuration
+│   ├── orchestrator.py            ← Run system & logging
+│   ├── versioning.py              ← Artifact/skill versioning (M1)
+│   ├── validate.py                ← Run validation (M1)
+│   ├── models/core.py             ← Pydantic models
+│   ├── storage/sqlite.py          ← Database operations
+│   ├── tools/ingest.py            ← Source ingestion
+│   └── skills/research_brief.py   ← Skill implementations
+│
+├── tests/                         ← Tests (33 passing)
+│   ├── test_models.py
+│   ├── test_orchestrator.py
+│   ├── test_skills.py
+│   ├── test_versioning.py         ← Versioning tests (M1)
+│   ├── test_validate.py           ← Validation tests (M1)
+│   └── golden/                    ← Golden run tests (M1)
+│       └── test_golden_runs.py
+│
+├── data/bd.sqlite                 ← Database
+└── runs/                          ← Execution artifacts
 ```
 
 ---
 
 ## Features
 
-✅ **5 CLI Commands**: research, targets, outreach, prep, followup  
+✅ **7 CLI Commands**: research, targets, outreach, prep, followup, status, validate-run  
 ✅ **Run System**: Timestamped, immutable, auditable runs  
-✅ **Artifacts**: Markdown + JSON outputs for each command  
+✅ **Artifacts**: Markdown + JSON outputs with version metadata  
 ✅ **Logging**: JSONL worklog + JSON status tracking  
 ✅ **Database**: SQLite for sources & traceability  
-✅ **Tests**: 7/7 passing, 0 lint errors  
-✅ **Documentation**: 1000+ lines across guides
+✅ **CI Pipeline**: GitHub Actions for ruff + pytest  
+✅ **Golden Tests**: Regression tests for artifact structure  
+✅ **Validation**: CLI command to validate run integrity  
+✅ **Tests**: 33/33 passing, 0 lint errors
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `bd research <company>` | Generate account research brief |
+| `bd targets <company>` | Create prospect target map |
+| `bd outreach <company>` | Draft outreach messages |
+| `bd prep <company>` | Prepare meeting pack |
+| `bd followup <company>` | Create post-meeting follow-up |
+| `bd status` | Show recent runs |
+| `bd validate-run <path>` | Validate run folder integrity |
 
 ---
 
@@ -63,20 +98,49 @@ ag_network/
 | File | Purpose |
 |------|---------|
 | [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md) | Full project overview & results |
-| [bd-copilot/README.md](bd-copilot/README.md) | User guide & command reference |
-| [bd-copilot/PROTOCOL.md](bd-copilot/PROTOCOL.md) | Execution log per Master Orchestrator Protocol |
-| [bd-copilot/src/agnetwork/cli.py](bd-copilot/src/agnetwork/cli.py) | All 5 commands |
-| [bd-copilot/src/agnetwork/orchestrator.py](bd-copilot/src/agnetwork/orchestrator.py) | Run system & logging |
-| [bd-copilot/tests/](bd-copilot/tests/) | Unit tests (7/7 passing) |
+| [PROTOCOL.md](PROTOCOL.md) | Execution log per Master Orchestrator Protocol |
+| [src/agnetwork/cli.py](src/agnetwork/cli.py) | All CLI commands |
+| [src/agnetwork/orchestrator.py](src/agnetwork/orchestrator.py) | Run system & logging |
+| [src/agnetwork/versioning.py](src/agnetwork/versioning.py) | Artifact versioning (M1) |
+| [src/agnetwork/validate.py](src/agnetwork/validate.py) | Run validation (M1) |
+| [tests/](tests/) | Unit tests (33 passing) |
 
 ---
 
 ## Testing
 
 ```bash
-cd bd-copilot
-pytest tests/ -v                    # Run all tests (7/7 pass)
-python -m ruff check src/ tests/    # Lint check (0 errors)
+# Run all tests
+pytest tests/ -v
+
+# Run golden tests only
+pytest tests/golden/ -v
+
+# Lint check
+ruff check .
+
+# Full CI simulation
+ruff check . && pytest tests/ -v
+```
+
+---
+
+## Artifact Versioning (M1)
+
+All JSON artifacts now include a `meta` block:
+
+```json
+{
+  "company": "TechCorp",
+  "snapshot": "...",
+  "meta": {
+    "artifact_version": "1.0",
+    "skill_name": "research_brief",
+    "skill_version": "1.0",
+    "generated_at": "2026-01-25T16:27:18.252124+00:00",
+    "run_id": "20260125_162718__testcompany__research"
+  }
+}
 ```
 
 ---
@@ -86,12 +150,13 @@ python -m ruff check src/ tests/    # Lint check (0 errors)
 ```
 CLI (Typer)
     ↓
-Commands (research, targets, outreach, prep, followup)
+Commands (research, targets, outreach, prep, followup, validate-run)
     ↓
 RunManager (orchestrator.py)
     ├── Creates: runs/<timestamp>__<slug>__<command>/
     ├── Logs: agent_worklog.jsonl + agent_status.json
-    └── Saves: inputs.json + sources/ + artifacts/
+    ├── Saves: inputs.json + sources/ + artifacts/
+    └── Injects: version metadata via versioning.py
     ↓
 Skills (research_brief.py + Jinja2 templates)
     ├── Generates: Markdown output
@@ -127,12 +192,12 @@ runs/
 │   ├── inputs.json
 │   ├── artifacts/
 │   │   ├── research_brief.md      ✅ Generated
-│   │   └── research_brief.json    ✅ Generated
+│   │   └── research_brief.json    ✅ With meta block
 │   └── logs/
 │       ├── run.log
 │       ├── agent_worklog.jsonl
 │       └── agent_status.json
-└── 20260125_143717__techcorp__targets/
+└── 20260125_162718__testcompany__research/
     └── ...
 ```
 
@@ -140,24 +205,22 @@ runs/
 
 ## Next Steps
 
-1. **Review** [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md) for full details
-2. **Test** the CLI: `cd bd-copilot && python -m agnetwork.cli research ...`
-3. **Read** [bd-copilot/README.md](bd-copilot/README.md) for command reference
-4. **Check** test results: `pytest tests/ -v`
-5. **Plan** v0.2: LLM integration, web scraping, automation
+1. **Test** the CLI: `bd research "Test Company" --snapshot "..."`
+2. **Check** test results: `pytest tests/ -v`
+3. **Validate** runs: `bd validate-run runs/<folder>`
+4. **Plan** M2: Agent Kernel + Skill Contract Standardization
 
 ---
 
 ## Questions?
 
-- **How does it work?** → See [bd-copilot/PROTOCOL.md](bd-copilot/PROTOCOL.md)
-- **How do I use it?** → See [bd-copilot/README.md](bd-copilot/README.md)
+- **How does it work?** → See [PROTOCOL.md](PROTOCOL.md)
 - **What was built?** → See [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md)
-- **What's the architecture?** → See `bd-copilot/src/agnetwork/`
+- **What's the architecture?** → See `src/agnetwork/`
 
 ---
 
 **Built with Master Orchestrator Protocol** ✅  
-All specifications from `Cursor_Prompt_BD_Copilot_Master_Orchestrator.md` implemented.
+v0.1 + M1 Platform Hardening Complete
 
 ---

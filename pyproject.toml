@@ -3,12 +3,12 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bd-copilot"
+name = "ag-network"
 version = "0.1.0"
-description = "Autonomous BD workflow assistant: research → targets → outreach → meeting prep → follow-up"
+description = "Agent network: Workflow orchestration for agentic AI with a multipurpose skillset"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{name = "BD Copilot Team"}]
+authors = [{name = "AG Network Team"}]
 license = {text = "MIT"}
 
 dependencies = [
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-bd = "agnetwork.cli:app"
+ag = "agnetwork.cli:app"
 
 [tool.setuptools]
 packages = ["agnetwork"]

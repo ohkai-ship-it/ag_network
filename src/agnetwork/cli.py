@@ -1,4 +1,4 @@
-"""CLI entry point for BD Copilot."""
+"""CLI entry point for AG Network."""
 
 import json
 from pathlib import Path
@@ -14,8 +14,8 @@ from agnetwork.tools.ingest import SourceIngestor
 
 # Initialize Typer app
 app = Typer(
-    name="bd",
-    help="BD Copilot: Autonomous business development workflow assistant",
+    name="ag_network",
+    help="Agent network: Workflow orchestration for agentic AI with a multipurpose skillset.",
 )
 
 
@@ -312,6 +312,26 @@ def status():
             with open(status_file, "r") as f:
                 status_data = json.load(f)
             typer.echo(f"  {run.name}: {status_data.get('current_phase', '?')}")
+
+
+@app.command(name="validate-run")
+def validate_run(
+    run_path: Path = typer.Argument(..., help="Path to run folder to validate"),
+    require_meta: bool = typer.Option(
+        False, "--require-meta", "-m", help="Require meta blocks in artifacts"
+    ),
+):
+    """Validate a run folder for integrity."""
+    from agnetwork.validate import validate_run_folder
+
+    typer.echo(f"🔍 Validating run folder: {run_path}")
+
+    result = validate_run_folder(run_path, require_meta=require_meta)
+
+    typer.echo(str(result))
+
+    if not result.is_valid:
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

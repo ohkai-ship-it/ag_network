@@ -72,11 +72,17 @@ def test_run_manager_artifacts(temp_run_dir):
         assert md_file.exists()
         assert md_file.read_text() == markdown
 
-        # Check JSON was saved
+        # Check JSON was saved with meta field
         json_file = run.run_dir / "artifacts" / "test_artifact.json"
         assert json_file.exists()
         with open(json_file, "r") as f:
             saved_data = json.load(f)
-            assert saved_data == json_data
+            # Original data preserved
+            assert saved_data["test"] == "data"
+            assert saved_data["nested"] == {"key": "value"}
+            # Meta field added
+            assert "meta" in saved_data
+            assert saved_data["meta"]["artifact_version"] == "1.0"
+            assert saved_data["meta"]["run_id"] == run.run_id
     finally:
         agnetwork.config.config.runs_dir = orig_runs_dir
