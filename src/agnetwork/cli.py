@@ -634,5 +634,494 @@ def memory_search(
             typer.echo("  No matches found")
 
 
+# =============================================================================
+# CRM Subcommand Group (M6)
+# =============================================================================
+
+crm_app = Typer(help="CRM integration commands (M6)")
+app.add_typer(crm_app, name="crm")
+
+
+@crm_app.command(name="export-run")
+def crm_export_run(
+    run_id: str = typer.Argument(..., help="Run ID to export"),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json or csv"
+    ),
+    out: Optional[Path] = typer.Option(
+        None, "--out", "-o", help="Output directory path"
+    ),
+):
+    """Export a pipeline run as a CRM package.
+
+    Creates a directory with accounts.json/csv, contacts.json/csv,
+    activities.json/csv, and manifest.json.
+
+    Examples:
+        ag crm export-run 20260126_101856__testcompany__pipeline
+        ag crm export-run <run_id> --format csv --out ./exports
+    """
+    from agnetwork.crm.adapters import CRMAdapterFactory
+    from agnetwork.crm.mapping import map_run_to_crm
+
+    typer.echo(f"📦 Exporting run: {run_id}")
+
+    # Map run to CRM objects
+    try:
+        package = map_run_to_crm(run_id)
+    except ValueError as e:
+        typer.echo(f"❌ Error: {e}", err=True)
+        raise typer.Exit(1)
+
+    # Determine output path
+    if out is None:
+        out = config.project_root / "data" / "crm_exports" / run_id
+
+    typer.echo(f"📁 Output directory: {out}")
+
+    # Export using adapter from factory (M6.1)
+    adapter = CRMAdapterFactory.from_env()
+    result = adapter.export_data(package, str(out), format=format)
+
+    if result.success:
+        typer.echo("✅ Export completed successfully!")
+        typer.echo(f"   Accounts: {result.accounts_exported}")
+        typer.echo(f"   Contacts: {result.contacts_exported}")
+        typer.echo(f"   Activities: {result.activities_exported}")
+        typer.echo(f"   Manifest: {result.manifest_path}")
+    else:
+        typer.echo("❌ Export failed!", err=True)
+        for error in result.errors:
+            typer.echo(f"   Error: {error}", err=True)
+        raise typer.Exit(1)
+
+
+@crm_app.command(name="export-latest")
+def crm_export_latest(
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json or csv"
+    ),
+    out: Optional[Path] = typer.Option(
+        None, "--out", "-o", help="Output directory path"
+    ),
+    pipeline_only: bool = typer.Option(
+        True, "--pipeline-only/--all", help="Only export pipeline runs"
+    ),
+):
+    """Export the most recent pipeline run as a CRM package.
+
+    Examples:
+        ag crm export-latest
+        ag crm export-latest --format csv
+        ag crm export-latest --all  # Include non-pipeline runs
+    """
+    # Find latest run
+    runs = sorted(config.runs_dir.glob("*"), key=lambda x: x.name, reverse=True)
+
+    if pipeline_only:
+        runs = [r for r in runs if "__pipeline" in r.name]
+
+    if not runs:
+        typer.echo("❌ No runs found", err=True)
+        raise typer.Exit(1)
+
+    latest_run = runs[0]
+    run_id = latest_run.name
+
+    typer.echo(f"📌 Latest run: {run_id}")
+
+    # Delegate to export-run
+    from agnetwork.crm.adapters import CRMAdapterFactory
+    from agnetwork.crm.mapping import map_run_to_crm
+
+    try:
+        package = map_run_to_crm(run_id)
+    except ValueError as e:
+        typer.echo(f"❌ Error: {e}", err=True)
+        raise typer.Exit(1)
+
+    if out is None:
+        out = config.project_root / "data" / "crm_exports" / run_id
+
+    typer.echo(f"📁 Output directory: {out}")
+
+    adapter = CRMAdapterFactory.from_env()
+    result = adapter.export_data(package, str(out), format=format)
+
+    if result.success:
+        typer.echo("✅ Export completed successfully!")
+        typer.echo(f"   Accounts: {result.accounts_exported}")
+        typer.echo(f"   Contacts: {result.contacts_exported}")
+        typer.echo(f"   Activities: {result.activities_exported}")
+    else:
+        typer.echo("❌ Export failed!", err=True)
+        for error in result.errors:
+            typer.echo(f"   Error: {error}", err=True)
+        raise typer.Exit(1)
+
+
+@crm_app.command(name="import")
+def crm_import(
+    file: Path = typer.Argument(..., help="Path to import file or directory"),
+    dry_run: bool = typer.Option(
+        True, "--dry-run/--no-dry-run", help="Validate without persisting (default: dry-run)"
+    ),
+):
+    """Import CRM data from CSV/JSON files.
+
+    Default is dry-run mode (validate only). Use --no-dry-run to persist.
+
+    Examples:
+        ag crm import ./exports/accounts.json
+        ag crm import ./exports/ --no-dry-run
+    """
+    from agnetwork.crm.adapters import CRMAdapterFactory
+
+    mode = "DRY RUN" if dry_run else "LIVE"
+    typer.echo(f"📥 Importing from: {file} ({mode})")
+
+    adapter = CRMAdapterFactory.from_env()
+    result = adapter.import_data(str(file), dry_run=dry_run)
+
+    if result.success:
+        typer.echo("✅ Import completed successfully!")
+        typer.echo(f"   Accounts: {result.accounts_imported}")
+        typer.echo(f"   Contacts: {result.contacts_imported}")
+        typer.echo(f"   Activities: {result.activities_imported}")
+
+        if dry_run:
+            typer.echo("\n💡 This was a dry run. Use --no-dry-run to persist.")
+
+        for warning in result.warnings:
+            typer.echo(f"   ⚠️ {warning}")
+    else:
+        typer.echo("❌ Import failed!", err=True)
+        for error in result.errors:
+            typer.echo(f"   Error: {error}", err=True)
+        raise typer.Exit(1)
+
+
+@crm_app.command(name="list")
+def crm_list(
+    entity: str = typer.Argument(
+        "accounts", help="Entity type: accounts, contacts, or activities"
+    ),
+    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
+    account_id: Optional[str] = typer.Option(
+        None, "--account", "-a", help="Filter by account ID"
+    ),
+):
+    """List CRM entities from storage.
+
+    Examples:
+        ag crm list accounts
+        ag crm list contacts --account acc_testcompany
+        ag crm list activities --limit 10
+    """
+    from agnetwork.crm.adapters import CRMAdapterFactory
+
+    adapter = CRMAdapterFactory.from_env()
+
+    if entity == "accounts":
+        accounts = adapter.list_accounts(limit=limit)
+        typer.echo(f"\n🏢 Accounts ({len(accounts)}):")
+        for acc in accounts:
+            typer.echo(f"  [{acc.account_id}] {acc.name}")
+            if acc.domain:
+                typer.echo(f"      Domain: {acc.domain}")
+
+    elif entity == "contacts":
+        contacts = adapter.list_contacts(account_id=account_id, limit=limit)
+        typer.echo(f"\n👤 Contacts ({len(contacts)}):")
+        for con in contacts:
+            typer.echo(f"  [{con.contact_id}] {con.full_name}")
+            if con.role_title:
+                typer.echo(f"      Title: {con.role_title}")
+            if con.email:
+                typer.echo(f"      Email: {con.email}")
+
+    elif entity == "activities":
+        activities = adapter.list_activities(account_id=account_id, limit=limit)
+        typer.echo(f"\n📋 Activities ({len(activities)}):")
+        for act in activities:
+            status = "📅 PLANNED" if act.is_planned else "✅"
+            typer.echo(f"  {status} [{act.activity_id}] {act.subject}")
+            typer.echo(f"      Type: {act.activity_type.value} | {act.direction.value}")
+            if act.run_id:
+                typer.echo(f"      Run: {act.run_id}")
+
+    else:
+        typer.echo(f"❌ Unknown entity type: {entity}", err=True)
+        typer.echo("   Valid types: accounts, contacts, activities")
+        raise typer.Exit(1)
+
+
+@crm_app.command(name="search")
+def crm_search(
+    query: str = typer.Argument(..., help="Search query"),
+    entity: str = typer.Option(
+        "all", "--entity", "-e", help="Entity type: accounts, contacts, or all"
+    ),
+    limit: int = typer.Option(10, "--limit", "-l", help="Maximum results"),
+):
+    """Search CRM entities.
+
+    Examples:
+        ag crm search "tech" --entity accounts
+        ag crm search "VP" --entity contacts
+        ag crm search "startup"
+    """
+    from agnetwork.crm.adapters import CRMAdapterFactory
+
+    adapter = CRMAdapterFactory.from_env()
+
+    if entity in ("all", "accounts"):
+        accounts = adapter.search_accounts(query, limit=limit)
+        typer.echo(f"\n🏢 Accounts matching '{query}' ({len(accounts)}):")
+        for acc in accounts:
+            typer.echo(f"  [{acc.account_id}] {acc.name}")
+
+    if entity in ("all", "contacts"):
+        contacts = adapter.search_contacts(query, limit=limit)
+        typer.echo(f"\n👤 Contacts matching '{query}' ({len(contacts)}):")
+        for con in contacts:
+            typer.echo(f"  [{con.contact_id}] {con.full_name} - {con.role_title or 'N/A'}")
+
+
+@crm_app.command(name="stats")
+def crm_stats():
+    """Show CRM storage statistics.
+
+    Example:
+        ag crm stats
+    """
+    from agnetwork.crm.storage import CRMStorage
+
+    storage = CRMStorage()
+    stats = storage.get_stats()
+
+    typer.echo("\n📊 CRM Storage Statistics:")
+    typer.echo(f"   Accounts:   {stats['accounts']}")
+    typer.echo(f"   Contacts:   {stats['contacts']}")
+    typer.echo(f"   Activities: {stats['activities']}")
+
+
+# =============================================================================
+# Sequence Subcommand Group (M6)
+# =============================================================================
+
+sequence_app = Typer(help="Outreach sequence commands (M6)")
+app.add_typer(sequence_app, name="sequence")
+
+
+@sequence_app.command(name="plan")
+def sequence_plan(
+    run_id: str = typer.Argument(..., help="Run ID to build sequence from"),
+    channel: str = typer.Option(
+        "email", "--channel", "-c", help="Channel: email or linkedin"
+    ),
+    start_date: Optional[str] = typer.Option(
+        None, "--start", "-s", help="Start date (YYYY-MM-DD, defaults to today)"
+    ),
+    out: Optional[Path] = typer.Option(
+        None, "--out", "-o", help="Output directory for sequence export"
+    ),
+):
+    """Generate an outreach sequence plan from a pipeline run.
+
+    Creates planned activities with scheduled dates based on
+    the outreach artifact's sequence_steps.
+
+    Examples:
+        ag sequence plan <run_id>
+        ag sequence plan <run_id> --channel linkedin
+        ag sequence plan <run_id> --start 2026-02-01 --out ./sequences
+    """
+    import json
+    from datetime import datetime
+
+    from agnetwork.crm.adapters import FileCRMAdapter
+    from agnetwork.crm.mapping import PipelineMapper
+    from agnetwork.crm.models import CRMExportManifest, CRMExportPackage
+    from agnetwork.crm.sequence import SequenceBuilder
+
+    typer.echo(f"📋 Building sequence plan for run: {run_id}")
+
+    # Load run data
+    run_dir = config.runs_dir / run_id
+    if not run_dir.exists():
+        typer.echo(f"❌ Run not found: {run_id}", err=True)
+        raise typer.Exit(1)
+
+    # Load outreach artifact
+    outreach_file = run_dir / "artifacts" / "outreach.json"
+    if not outreach_file.exists():
+        typer.echo("❌ No outreach artifact found in run", err=True)
+        raise typer.Exit(1)
+
+    with open(outreach_file, "r", encoding="utf-8") as f:
+        outreach = json.load(f)
+
+    # Override channel if specified
+    if channel:
+        outreach["channel"] = channel
+
+    # Parse start date
+    seq_start = datetime.now(timezone.utc)
+    if start_date:
+        try:
+            seq_start = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc)
+        except ValueError:
+            typer.echo(f"❌ Invalid date format: {start_date}", err=True)
+            raise typer.Exit(1)
+
+    # Build sequence
+    company = outreach.get("company", "Unknown")
+    account_id = f"acc_{company.lower().replace(' ', '_')}"
+    contact_id = f"con_{account_id}_primary"
+
+    builder = SequenceBuilder(mode="manual")
+    sequence = builder.build_from_outreach(
+        outreach_artifact=outreach,
+        account_id=account_id,
+        contact_id=contact_id,
+        run_id=run_id,
+        start_date=seq_start,
+    )
+
+    typer.echo(f"✅ Sequence plan created: {sequence.name}")
+    typer.echo(f"   Company: {sequence.company}")
+    typer.echo(f"   Channel: {sequence.channel}")
+    typer.echo(f"   Steps: {len(sequence.steps)}")
+
+    # Display steps
+    typer.echo("\n📅 Sequence Steps:")
+    for step in sequence.steps:
+        scheduled = sequence.get_scheduled_date(step)
+        typer.echo(f"   Day {step.day_offset}: {step.notes}")
+        typer.echo(f"      Scheduled: {scheduled.strftime('%Y-%m-%d')}")
+
+    # Convert to activities
+    activities = sequence.to_activities()
+    typer.echo(f"\n📋 Generated {len(activities)} planned activities")
+
+    # Export if output path specified
+    if out:
+        manifest = CRMExportManifest(
+            export_id=f"seq_{sequence.sequence_id}",
+            crm_export_version="1.0",
+            run_id=run_id,
+            company=company,
+            account_count=0,
+            contact_count=0,
+            activity_count=len(activities),
+            files=["manifest.json", "activities.json"],
+        )
+
+        package = CRMExportPackage(
+            manifest=manifest,
+            accounts=[],
+            contacts=[],
+            activities=activities,
+        )
+
+        from agnetwork.crm.adapters import CRMAdapterFactory
+        adapter = CRMAdapterFactory.from_env()
+        result = adapter.export_data(package, str(out), format="json")
+
+        if result.success:
+            typer.echo(f"\n✅ Sequence exported to: {out}")
+        else:
+            typer.echo(f"❌ Export failed: {result.errors}", err=True)
+
+
+@sequence_app.command(name="list-templates")
+def sequence_list_templates():
+    """List available sequence templates (M6.1).
+
+    Templates are loaded from JSON file and can be edited without code changes.
+
+    Example:
+        ag sequence list-templates
+    """
+    from agnetwork.crm.sequence import get_template_loader
+
+    loader = get_template_loader()
+    templates = loader.list_templates()
+
+    if not templates:
+        typer.echo("⚠️ No templates found in JSON file, using built-in defaults.")
+        typer.echo("\n📋 Built-in Templates:")
+        typer.echo("  - email (Standard 4-step email sequence)")
+        typer.echo("  - linkedin (3-step LinkedIn sequence)")
+        return
+
+    typer.echo(f"\n📋 Available Templates ({len(templates)}):")
+    for name in sorted(templates):
+        template = loader.get_template(name)
+        if template:
+            desc = template.get("description", "No description")
+            channel = template.get("channel", "email")
+            steps = len(template.get("steps", []))
+            typer.echo(f"\n  {name}")
+            typer.echo(f"    Channel: {channel}")
+            typer.echo(f"    Steps: {steps}")
+            typer.echo(f"    {desc}")
+
+
+@sequence_app.command(name="show-template")
+def sequence_show_template(
+    name: str = typer.Argument(..., help="Template name to show"),
+):
+    """Show details of a specific sequence template (M6.1).
+
+    Example:
+        ag sequence show-template email_standard
+        ag sequence show-template linkedin_connection
+    """
+    from agnetwork.crm.sequence import get_template_loader
+
+    loader = get_template_loader()
+    template = loader.get_template(name)
+
+    if not template:
+        typer.echo(f"❌ Template '{name}' not found.", err=True)
+        typer.echo("\nAvailable templates:")
+        for t in loader.list_templates():
+            typer.echo(f"  - {t}")
+        raise typer.Exit(1)
+
+    typer.echo(f"\n📋 Template: {template.get('name', name)}")
+    typer.echo(f"Channel: {template.get('channel', 'email')}")
+    typer.echo(f"Description: {template.get('description', 'N/A')}")
+    typer.echo("\n📅 Steps:")
+
+    for step in template.get("steps", []):
+        typer.echo(f"\n  Step {step['step_number']} (Day {step['offset_days']})")
+        typer.echo(f"    Style: {step.get('message_style', 'N/A')}")
+        typer.echo(f"    Subject: {step['subject_pattern']}")
+        typer.echo(f"    Notes: {step.get('notes', 'N/A')}")
+
+
+@sequence_app.command(name="templates")
+def sequence_templates():
+    """[Deprecated] Use 'list-templates' instead.
+
+    Example:
+        ag sequence templates
+    """
+    from agnetwork.crm.sequence import DEFAULT_SEQUENCE_STEPS, LINKEDIN_SEQUENCE_STEPS
+
+    typer.echo("⚠️ This command is deprecated. Use 'ag sequence list-templates' instead.\n")
+
+    typer.echo("📧 Built-in Email Sequence Template:")
+    for step in DEFAULT_SEQUENCE_STEPS:
+        typer.echo(f"   Step {step.step_number} (Day {step.day_offset}): {step.notes}")
+
+    typer.echo("\n💼 Built-in LinkedIn Sequence Template:")
+    for step in LINKEDIN_SEQUENCE_STEPS:
+        typer.echo(f"   Step {step.step_number} (Day {step.day_offset}): {step.notes}")
+
+
 if __name__ == "__main__":
     app()

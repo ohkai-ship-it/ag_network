@@ -1,0 +1,196 @@
+{
+  "version": "1.0",
+  "description": "Default sequence templates for BD outreach (M6.1)",
+  "templates": {
+    "email_standard": {
+      "name": "Standard Email Sequence",
+      "channel": "email",
+      "description": "4-step email outreach sequence with 2-week timeline",
+      "steps": [
+        {
+          "step_number": 1,
+          "offset_days": 0,
+          "channel": "email",
+          "message_style": "introduction",
+          "subject_pattern": "Partnership opportunity with {company}",
+          "body_template": "Hi {persona},\n\nI've been following {company}'s growth and believe there's a strong opportunity for collaboration.\n\nWe've helped similar companies achieve significant improvements in their processes.\n\nWould you be open to a brief conversation to explore how we might help {company}?\n\nBest regards",
+          "notes": "Initial outreach - focus on value proposition"
+        },
+        {
+          "step_number": 2,
+          "offset_days": 3,
+          "channel": "email",
+          "message_style": "follow_up",
+          "subject_pattern": "Re: Partnership opportunity with {company}",
+          "body_template": "Hi {persona},\n\nI wanted to follow up on my previous message about a potential partnership.\n\nI understand you're busy, but I believe this could be valuable for {company}.\n\nWould a 15-minute call work for you this week?\n\nBest regards",
+          "notes": "Follow-up - gentle nudge"
+        },
+        {
+          "step_number": 3,
+          "offset_days": 7,
+          "channel": "email",
+          "message_style": "value_add",
+          "subject_pattern": "Quick thought for {company}",
+          "body_template": "Hi {persona},\n\nI came across an article that reminded me of some challenges companies like {company} often face.\n\n[Thought leadership content placeholder]\n\nIf you'd like to discuss how this applies to your situation, I'm happy to chat.\n\nBest regards",
+          "notes": "Value-add content share - build credibility"
+        },
+        {
+          "step_number": 4,
+          "offset_days": 14,
+          "channel": "email",
+          "message_style": "breakup",
+          "subject_pattern": "Closing the loop - {company}",
+          "body_template": "Hi {persona},\n\nI've reached out a few times about exploring a partnership with {company}.\n\nI don't want to fill your inbox if the timing isn't right.\n\nIf you're open to a conversation in the future, feel free to reach out. Otherwise, I'll assume now isn't the best time.\n\nBest of luck with everything at {company}!\n\nBest regards",
+          "notes": "Final attempt - graceful exit with open door"
+        }
+      ]
+    },
+    "linkedin_connection": {
+      "name": "LinkedIn Connection Sequence",
+      "channel": "linkedin",
+      "description": "3-step LinkedIn outreach sequence",
+      "steps": [
+        {
+          "step_number": 1,
+          "offset_days": 0,
+          "channel": "linkedin",
+          "message_style": "connection_request",
+          "subject_pattern": "Connection request",
+          "body_template": "Hi {persona}, I noticed your work at {company} and would love to connect. I help companies like yours achieve better results. Let's connect!",
+          "notes": "LinkedIn connection request"
+        },
+        {
+          "step_number": 2,
+          "offset_days": 2,
+          "channel": "linkedin",
+          "message_style": "post_connect",
+          "subject_pattern": "Thanks for connecting",
+          "body_template": "Thanks for connecting, {persona}! I'd love to learn more about what {company} is working on. Would you be open to a quick chat?",
+          "notes": "Post-connection follow-up"
+        },
+        {
+          "step_number": 3,
+          "offset_days": 7,
+          "channel": "linkedin",
+          "message_style": "value_add",
+          "subject_pattern": "Value-add share",
+          "body_template": "Hi {persona}, I thought you might find this interesting: [content]. Let me know if you'd like to discuss how this applies to {company}.",
+          "notes": "Value-add content share"
+        }
+      ]
+    },
+    "email_aggressive": {
+      "name": "Aggressive Email Sequence",
+      "channel": "email",
+      "description": "5-step aggressive email sequence with 1-week timeline",
+      "steps": [
+        {
+          "step_number": 1,
+          "offset_days": 0,
+          "channel": "email",
+          "message_style": "direct",
+          "subject_pattern": "Quick question about {company}",
+          "body_template": "Hi {persona},\n\nI have a quick question about {company}'s approach to [pain point].\n\n2 minutes of your time could save you hours.\n\nCan we talk tomorrow?",
+          "notes": "Direct opener - specific and urgent"
+        },
+        {
+          "step_number": 2,
+          "offset_days": 1,
+          "channel": "email",
+          "message_style": "follow_up",
+          "subject_pattern": "Re: Quick question about {company}",
+          "body_template": "Hi {persona},\n\nJust bumping this - I know you're busy.\n\n15 minutes could make a big difference.\n\nWhen works?",
+          "notes": "Quick follow-up"
+        },
+        {
+          "step_number": 3,
+          "offset_days": 3,
+          "channel": "email",
+          "message_style": "social_proof",
+          "subject_pattern": "{company} + [Similar Company] - same challenge",
+          "body_template": "Hi {persona},\n\n[Similar Company] faced the same challenge you're likely dealing with.\n\nHere's what they did: [brief outcome].\n\nWant to hear the full story?",
+          "notes": "Social proof and case study"
+        },
+        {
+          "step_number": 4,
+          "offset_days": 5,
+          "channel": "email",
+          "message_style": "urgency",
+          "subject_pattern": "Time-sensitive for {company}",
+          "body_template": "Hi {persona},\n\nI've been trying to reach you about an opportunity that won't last.\n\nI'd hate for {company} to miss out.\n\nFinal attempt - can we connect this week?",
+          "notes": "Create urgency"
+        },
+        {
+          "step_number": 5,
+          "offset_days": 7,
+          "channel": "email",
+          "message_style": "breakup",
+          "subject_pattern": "Moving on - {company}",
+          "body_template": "Hi {persona},\n\nI'll take your silence as a 'not now'.\n\nNo hard feelings - I'll remove you from my list.\n\nIf things change, you know where to find me.\n\nBest,",
+          "notes": "Clean break"
+        }
+      ]
+    },
+    "email_nurture": {
+      "name": "Email Nurture Sequence",
+      "channel": "email",
+      "description": "6-step long-term nurture sequence over 6 weeks",
+      "steps": [
+        {
+          "step_number": 1,
+          "offset_days": 0,
+          "channel": "email",
+          "message_style": "introduction",
+          "subject_pattern": "Thought you'd find this interesting - {company}",
+          "body_template": "Hi {persona},\n\nI came across your profile and thought this [resource/article] might be relevant to {company}.\n\n[Link or brief insight]\n\nNo agenda here - just thought you'd find it useful.",
+          "notes": "Soft introduction with value"
+        },
+        {
+          "step_number": 2,
+          "offset_days": 7,
+          "channel": "email",
+          "message_style": "value_add",
+          "subject_pattern": "Industry trend affecting {company}?",
+          "body_template": "Hi {persona},\n\nI've been tracking a trend that's affecting companies like {company}.\n\n[Brief insight]\n\nIs this something you're seeing too?",
+          "notes": "Share industry insights"
+        },
+        {
+          "step_number": 3,
+          "offset_days": 14,
+          "channel": "email",
+          "message_style": "case_study",
+          "subject_pattern": "How [Similar Company] solved [challenge]",
+          "body_template": "Hi {persona},\n\nThought you might find this case study interesting.\n\n[Brief summary of results]\n\nHappy to share more details if relevant to {company}.",
+          "notes": "Social proof through case study"
+        },
+        {
+          "step_number": 4,
+          "offset_days": 21,
+          "channel": "email",
+          "message_style": "question",
+          "subject_pattern": "Quick question for {company}",
+          "body_template": "Hi {persona},\n\nI've been meaning to ask - how is {company} handling [specific challenge]?\n\nCurious to hear your perspective.",
+          "notes": "Engage with a question"
+        },
+        {
+          "step_number": 5,
+          "offset_days": 35,
+          "channel": "email",
+          "message_style": "invitation",
+          "subject_pattern": "[Webinar/Event] for leaders like you",
+          "body_template": "Hi {persona},\n\nWe're hosting a [webinar/event] on [topic] with [speaker/experts].\n\nThought it might be valuable for {company}.\n\n[Link to register]\n\nHope to see you there!",
+          "notes": "Invite to event or resource"
+        },
+        {
+          "step_number": 6,
+          "offset_days": 42,
+          "channel": "email",
+          "message_style": "soft_ask",
+          "subject_pattern": "Worth a quick chat?",
+          "body_template": "Hi {persona},\n\nI've shared a few resources over the past weeks that seemed relevant to {company}.\n\nWould love to hear your thoughts and see if there's anything else I can help with.\n\n15 minutes for a quick chat?",
+          "notes": "Soft ask after nurturing"
+        }
+      ]
+    }
+  }
+}
