@@ -26,6 +26,52 @@ class FactCheck(BaseModel):
     confidence: Optional[float] = None  # 0.0 to 1.0
 
 
+class EvidenceSnippet(BaseModel):
+    """M8: A verbatim quote from a source supporting a fact.
+
+    Used to cite specific evidence for non-assumption facts.
+    """
+
+    source_id: str
+    url: Optional[str] = None
+    quote: str  # Verbatim quote from source (<=220 chars recommended)
+    start_char: Optional[int] = None  # Optional: position in source text
+    end_char: Optional[int] = None  # Optional: end position in source text
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "source_id": self.source_id,
+            "url": self.url,
+            "quote": self.quote,
+            "start_char": self.start_char,
+            "end_char": self.end_char,
+        }
+
+
+class PersonalizationAngle(BaseModel):
+    """M8: Enhanced personalization angle with evidence support.
+
+    Used in research brief to track sourced vs assumed facts.
+    """
+
+    name: str
+    fact: str
+    is_assumption: bool = True
+    source_ids: List[str] = Field(default_factory=list)
+    evidence: List[EvidenceSnippet] = Field(default_factory=list)  # M8: Required if is_assumption=false
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization."""
+        return {
+            "name": self.name,
+            "fact": self.fact,
+            "is_assumption": self.is_assumption,
+            "source_ids": self.source_ids,
+            "evidence": [e.to_dict() for e in self.evidence],
+        }
+
+
 class ResearchBrief(BaseModel):
     """Output model for account research."""
 
@@ -34,7 +80,7 @@ class ResearchBrief(BaseModel):
     pains: List[str]
     triggers: List[str]
     competitors: List[str]
-    personalization_angles: List[Dict[str, Any]]  # {"angle": "...", "fact": "...", "is_assumption": bool}
+    personalization_angles: List[Dict[str, Any]]  # {"angle": "...", "fact": "...", "is_assumption": bool, "evidence": [...]}
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

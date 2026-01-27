@@ -339,6 +339,9 @@ class KernelExecutor:
                 claim_id = f"claim_{run.run_id}_{uuid.uuid4().hex[:8]}"
                 source_ids = claim.source_ids if claim.is_sourced() else []
 
+                # M8 TODO: Once claims schema supports evidence JSON, persist
+                # evidence snippets here. For now, evidence is stored in artifacts
+                # and linked via source_ids.
                 db.insert_claim(
                     claim_id=claim_id,
                     artifact_id=artifact_id,

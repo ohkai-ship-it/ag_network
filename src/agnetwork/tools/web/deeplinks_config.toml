@@ -1,0 +1,33 @@
+# Deep Links Configuration v1.0.0
+# Used by discover_deep_links() for deterministic link selection
+# Edit keywords to tune extraction for specific industries/use cases
+
+version = "1.0.0"
+
+# Maximum deep links to select per category
+max_per_category = 1
+
+# Maximum total deep links to select (across all categories)
+max_total = 4
+
+# Only select links within the same domain as homepage
+same_domain_only = true
+
+# Keywords that boost link scores (by category)
+[category_keywords]
+about = ["about", "about-us", "team", "leadership", "mission", "story", "history", "ueber-uns", "unternehmen", "company", "who-we-are"]
+services = ["services", "solutions", "products", "offerings", "capabilities", "what-we-do", "leistungen", "produkte", "angebot"]
+news = ["news", "blog", "press", "media", "insights", "articles", "resources", "aktuelles", "neuigkeiten", "presse"]
+careers = ["careers", "jobs", "join-us", "work-with-us", "opportunities", "karriere", "stellenangebote"]
+products = ["products", "catalog", "shop", "store", "pricing", "plans", "produkte", "preise"]
+contact = ["contact", "kontakt", "reach-us", "get-in-touch", "locations", "standorte"]
+
+# Keywords that disqualify links (blacklist)
+blacklist_keywords = [
+    "privacy", "datenschutz", "imprint", "impressum",
+    "terms", "terms-of-service", "terms-of-use", "agb", "legal",
+    "cookie", "cookies", "disclaimer", "nutzungsbedingungen",
+    "rechtliches", "sitemap", "login", "signin", "sign-in",
+    "register", "signup", "sign-up", "logout", "cart", "checkout",
+    "warenkorb", "download", "pdf", "print", "drucken"
+]

@@ -1,0 +1,155 @@
+# Deep Link Discovery Configuration
+# Version: 1.0.0
+# Used by: agnetwork.tools.web.deeplinks
+
+# Configuration version for auditing
+version: "1.0.0"
+
+# Keywords per category (matched in URL path and anchor text)
+# Categories: about, services, news, careers, products, contact
+category_keywords:
+  about:
+    - about
+    - about-us
+    - uber-uns
+    - ueber-uns
+    - unternehmen
+    - company
+    - who-we-are
+    - our-story
+    - team
+    - leadership
+    - management
+    - history
+    - mission
+    - vision
+    - values
+    - profile
+    - profil
+
+  services:
+    - services
+    - leistungen
+    - dienstleistungen
+    - angebot
+    - offerings
+    - solutions
+    - what-we-do
+    - capabilities
+    - consulting
+    - beratung
+    - expertise
+
+  news:
+    - news
+    - blog
+    - aktuelles
+    - neuigkeiten
+    - press
+    - presse
+    - media
+    - insights
+    - articles
+    - updates
+    - announcements
+    - releases
+    - nachrichten
+    - meldungen
+
+  careers:
+    - careers
+    - jobs
+    - karriere
+    - stellenangebote
+    - work-with-us
+    - join-us
+    - opportunities
+    - vacancies
+    - employment
+    - hiring
+    - arbeiten
+    - mitarbeiter
+
+  products:
+    - products
+    - produkte
+    - portfolio
+    - brands
+    - catalog
+    - katalog
+    - shop
+    - store
+
+  contact:
+    - contact
+    - kontakt
+    - get-in-touch
+    - reach-us
+    - connect
+    - locations
+    - standorte
+    - anfahrt
+
+# Keywords to blacklist (legal pages, utilities)
+# Links containing these keywords will be excluded
+blacklist_keywords:
+  # Legal pages
+  - impressum
+  - imprint
+  - datenschutz
+  - privacy
+  - privacy-policy
+  - terms
+  - terms-of-service
+  - terms-of-use
+  - agb
+  - legal
+  - rechtliches
+  - nutzungsbedingungen
+  - disclaimer
+
+  # Cookie/consent
+  - cookie
+  - cookies
+  - consent
+
+  # Auth/account
+  - login
+  - signin
+  - sign-in
+  - register
+  - signup
+  - sign-up
+  - logout
+  - account
+  - konto
+
+  # E-commerce utilities
+  - cart
+  - checkout
+  - warenkorb
+  - wishlist
+
+  # Downloads/media
+  - download
+  - pdf
+  - print
+  - drucken
+
+  # Utility pages
+  - sitemap
+  - search
+  - suche
+  - rss
+  - feed
+
+# Selection caps
+# max_per_category: Maximum links to select per category
+max_per_category: 1
+
+# max_total: Maximum total links to select
+max_total: 4
+
+# Domain restrictions
+# same_domain_only: If true, only links to the same domain are considered
+same_domain_only: true

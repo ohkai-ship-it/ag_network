@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import typer
 from typer import Context, Typer
@@ -127,6 +127,92 @@ def init_app(
     ctx.obj.workspace_context = resolve_workspace(workspace)
 
 
+def _discover_and_fetch_deep_links(
+    url: str,
+    raw_path: Path,
+    run_dir: Path,
+    deep_links_max: int,
+    deep_links_mode: str,
+    capture,
+    db,
+    run_id: str,
+) -> list:
+    """M8: Discover and fetch deep links from a homepage.
+
+    Returns list of successfully captured deep link results.
+    """
+    from agnetwork.tools.web.deeplinks import (
+        DeepLinksConfig,
+        discover_deep_links,
+        is_homepage_url,
+    )
+
+    if not is_homepage_url(url):
+        return []
+
+    if not raw_path.exists():
+        return []
+
+    typer.echo("   🔗 Discovering deep links...")
+    raw_html = raw_path.read_bytes()
+
+    # Configure deep links
+    dl_config = DeepLinksConfig.load_default()
+    dl_config.max_total = deep_links_max
+
+    # Setup LLM if agent mode
+    llm = None
+    use_agent = deep_links_mode == "agent"
+    if use_agent:
+        try:
+            from agnetwork.tools.llm import LLMFactory
+            llm_factory = LLMFactory.from_env()
+            if llm_factory.is_enabled:
+                llm = llm_factory.get_default_adapter()
+            else:
+                typer.echo("   ⚠️ LLM not enabled, using deterministic mode")
+                use_agent = False
+        except Exception as e:
+            typer.echo(f"   ⚠️ LLM setup failed: {e}, using deterministic mode")
+            use_agent = False
+
+    # Discover deep links
+    selections, audit = discover_deep_links(
+        url,
+        raw_html,
+        config=dl_config,
+        use_agent=use_agent,
+        llm=llm,
+    )
+
+    # Save audit artifact
+    audit.save(run_dir / "sources" / "deeplinks.json")
+
+    # Fetch selected deep links
+    captured = []
+    for sel in selections:
+        typer.echo(f"      Fetching: {sel.url[:50]}... ({sel.category})")
+        dl_result = capture.capture_url(sel.url)
+        if dl_result.is_success:
+            typer.echo(f"      ✅ {dl_result.title or 'No title'}")
+            db.upsert_source_from_capture(
+                source_id=dl_result.source_id,
+                url=dl_result.url,
+                final_url=dl_result.final_url,
+                title=dl_result.title,
+                clean_text=dl_result.clean_text,
+                content_hash=dl_result.content_hash,
+                fetched_at=dl_result.fetched_at.isoformat(),
+                run_id=run_id,
+            )
+            captured.append(dl_result)
+        else:
+            typer.echo(f"      ❌ Failed: {dl_result.error}", err=True)
+
+    typer.echo(f"   🔗 Deep links: {len(selections)} selected ({audit.selection_method})")
+    return captured
+
+
 @app.command()
 def research(
     ctx: Context,
@@ -151,6 +237,15 @@ def research(
     ),
     use_memory: bool = typer.Option(
         False, "--use-memory/--no-memory", help="Enable memory retrieval (M5)"
+    ),
+    deep_links: bool = typer.Option(
+        False, "--deep-links/--no-deep-links", help="Enable deep link discovery (M8)"
+    ),
+    deep_links_mode: str = typer.Option(
+        "deterministic", "--deep-links-mode", help="Deep link selection mode: deterministic or agent"
+    ),
+    deep_links_max: int = typer.Option(
+        4, "--deep-links-max", help="Maximum deep links to fetch"
     ),
 ):
     """Research a company and generate account research brief."""
@@ -205,6 +300,20 @@ def research(
                         run_id=run.run_id,
                     )
                     captured_sources.append(result)
+
+                    # M8: Deep link discovery if enabled and this looks like a homepage
+                    if deep_links and result.raw_path:
+                        dl_captured = _discover_and_fetch_deep_links(
+                            url=url,
+                            raw_path=run.run_dir / result.raw_path,
+                            run_dir=run.run_dir,
+                            deep_links_max=deep_links_max,
+                            deep_links_mode=deep_links_mode,
+                            capture=capture,
+                            db=db,
+                            run_id=run.run_id,
+                        )
+                        captured_sources.extend(dl_captured)
                 else:
                     typer.echo(f"   ❌ Failed: {result.error}", err=True)
 
@@ -234,6 +343,8 @@ def research(
             "urls_fetched": [s.url for s in captured_sources],
             "source_ids": [s.source_id for s in captured_sources],
             "use_memory": use_memory,
+            "deep_links_enabled": deep_links,
+            "deep_links_mode": deep_links_mode if deep_links else None,
         }
         run.save_inputs(inputs)
 
@@ -567,16 +678,23 @@ def _fetch_urls_for_pipeline(
     urls: List[str],
     company: str,
     ws_ctx: "WorkspaceContext",
-) -> List[str]:
+    *,
+    deep_links: bool = False,
+    deep_links_mode: str = "deterministic",
+    deep_links_max: int = 4,
+) -> Tuple[List[str], Optional[Path]]:
     """Fetch URLs and store them for pipeline use.
 
     Args:
         urls: List of URLs to fetch
         company: Company name for run slug
         ws_ctx: Workspace context for scoped storage
+        deep_links: Whether to discover and fetch deep links
+        deep_links_mode: "deterministic" or "agent"
+        deep_links_max: Maximum deep links to fetch per homepage
 
     Returns:
-        List of captured source IDs
+        Tuple of (list of captured source IDs, run_dir for deep links audit)
     """
     from agnetwork.orchestrator import RunManager
     from agnetwork.storage.sqlite import SQLiteManager
@@ -605,11 +723,25 @@ def _fetch_urls_for_pipeline(
                 run_id=temp_run.run_id,
             )
             captured_source_ids.append(result.source_id)
+
+            # M8: Deep link discovery if enabled and this looks like a homepage
+            if deep_links and result.raw_path:
+                dl_captured = _discover_and_fetch_deep_links(
+                    url=url,
+                    raw_path=temp_run.run_dir / result.raw_path,
+                    run_dir=temp_run.run_dir,
+                    deep_links_max=deep_links_max,
+                    deep_links_mode=deep_links_mode,
+                    capture=capture,
+                    db=db,
+                    run_id=temp_run.run_id,
+                )
+                captured_source_ids.extend([r.source_id for r in dl_captured])
         else:
             typer.echo(f"   ❌ Failed: {result.error}", err=True)
 
     typer.echo(f"✅ Captured {len(captured_source_ids)} URLs")
-    return captured_source_ids
+    return captured_source_ids, temp_run.run_dir
 
 
 def _print_pipeline_result(
@@ -690,6 +822,15 @@ def run_pipeline(
     use_memory: bool = typer.Option(
         False, "--use-memory/--no-memory", help="Enable memory retrieval for context (M4/M5)"
     ),
+    deep_links: bool = typer.Option(
+        False, "--deep-links/--no-deep-links", help="Enable deep link discovery (M8)"
+    ),
+    deep_links_mode: str = typer.Option(
+        "deterministic", "--deep-links-mode", help="Deep link selection mode: deterministic or agent"
+    ),
+    deep_links_max: int = typer.Option(
+        4, "--deep-links-max", help="Maximum deep links to fetch"
+    ),
 ):
     """Run the full BD pipeline for a company.
 
@@ -707,6 +848,11 @@ def run_pipeline(
     Memory (M4/M5):
     - --use-memory: Enable FTS5-based retrieval over stored sources/artifacts
     - --url: Fetch URLs into sources before running pipeline
+
+    Deep Links (M8):
+    - --deep-links: Discover and fetch additional pages from homepage (2-4 pages)
+    - --deep-links-mode: Selection mode (deterministic or agent)
+    - --deep-links-max: Maximum deep links to fetch (default 4)
     """
     from agnetwork.eval.verifier import Verifier
     from agnetwork.kernel import KernelExecutor, TaskSpec, TaskType
@@ -720,13 +866,23 @@ def run_pipeline(
     typer.echo(f"🚀 Running full BD pipeline for {company}...")
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
 
-    # Fetch URLs if provided
+    # Fetch URLs if provided (with optional deep link discovery - M8)
     captured_source_ids: List[str] = []
     if urls:
-        captured_source_ids = _fetch_urls_for_pipeline(urls, company, ws_ctx)
+        captured_source_ids, _ = _fetch_urls_for_pipeline(
+            urls,
+            company,
+            ws_ctx,
+            deep_links=deep_links,
+            deep_links_mode=deep_links_mode,
+            deep_links_max=deep_links_max,
+        )
         if captured_source_ids and not use_memory:
             use_memory = True
             typer.echo("🧠 Memory retrieval auto-enabled (URLs provided)")
+
+    if deep_links:
+        typer.echo(f"🔗 Deep link discovery: {deep_links_mode} mode (max {deep_links_max})")
 
     if use_memory:
         typer.echo("🧠 Memory retrieval enabled (FTS5)")
@@ -745,6 +901,8 @@ def run_pipeline(
             "meeting_type": meeting_type,
             "notes": notes,
             "source_ids": captured_source_ids,
+            "deep_links_enabled": deep_links,
+            "deep_links_mode": deep_links_mode if deep_links else None,
         },
         workspace_context=ws_ctx,  # M7.1: Pass workspace context for scoped runs
     )

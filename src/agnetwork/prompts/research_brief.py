@@ -10,6 +10,7 @@ def build_research_brief_prompt(
     triggers: List[str],
     competitors: List[str],
     sources: List[Dict[str, Any]] | None = None,
+    require_evidence: bool = False,
 ) -> Tuple[str, str]:
     """Build system and user prompts for research brief generation.
 
@@ -20,15 +21,45 @@ def build_research_brief_prompt(
         triggers: List of trigger events
         competitors: List of competitors
         sources: Optional list of source documents
+        require_evidence: M8 - If True, non-assumptions must include verbatim quotes
 
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
-    system_prompt = """You are an expert B2B sales research analyst. Your task is to generate a comprehensive account research brief for sales teams.
-
-OUTPUT FORMAT:
-You must output ONLY valid JSON matching this exact schema:
-{
+    # M8: Enhanced schema with evidence snippets
+    if require_evidence:
+        schema_example = """{
+  "company": string (required),
+  "snapshot": string (required, 2-3 sentences about the company),
+  "pains": [string] (required, list of 3-5 key pain points),
+  "triggers": [string] (required, list of 2-4 trigger events),
+  "competitors": [string] (required, list of 2-5 competitors),
+  "personalization_angles": [
+    {
+      "name": string (short name for the angle),
+      "fact": string (the insight or fact),
+      "is_assumption": boolean (true if not from sources),
+      "source_ids": [string] (list of source IDs used, empty if assumption),
+      "evidence": [
+        {
+          "source_id": string (must match a provided source ID),
+          "quote": string (verbatim quote from source, <=220 chars, prefer full sentences)
+        }
+      ] (required if is_assumption=false, empty array if assumption)
+    }
+  ] (required, list of 2-5 angles)
+}"""
+        evidence_rules = """EVIDENCE RULES (M8 - CRITICAL):
+1. If a fact comes from sources, set is_assumption: false, list source_ids, AND include evidence quotes
+2. Each evidence item must have a verbatim quote (<=220 characters) copied EXACTLY from the source
+3. Quotes must be full sentences when possible - no partial fragments
+4. If you cannot find a verbatim quote to support a fact, mark it as is_assumption: true
+5. NEVER invent or paraphrase quotes - they must appear EXACTLY in the source text
+6. If no source supports the fact, set is_assumption: true, source_ids: [], evidence: []
+7. ONLY reference source IDs that were provided to you
+8. Do NOT invent specific statistics, quotes, or citations"""
+    else:
+        schema_example = """{
   "company": string (required),
   "snapshot": string (required, 2-3 sentences about the company),
   "pains": [string] (required, list of 3-5 key pain points),
@@ -42,13 +73,20 @@ You must output ONLY valid JSON matching this exact schema:
       "source_ids": [string] (list of source IDs used, empty if assumption)
     }
   ] (required, list of 2-5 angles)
-}
-
-EVIDENCE RULES:
+}"""
+        evidence_rules = """EVIDENCE RULES:
 1. If a fact comes from one of the provided sources, set is_assumption: false and list source IDs in source_ids
 2. If no source supports the fact, set is_assumption: true and source_ids: []
 3. ONLY reference source IDs that were provided to you (e.g., [1], [2])
-4. Do NOT invent specific statistics, quotes, or citations
+4. Do NOT invent specific statistics, quotes, or citations"""
+
+    system_prompt = f"""You are an expert B2B sales research analyst. Your task is to generate a comprehensive account research brief for sales teams.
+
+OUTPUT FORMAT:
+You must output ONLY valid JSON matching this exact schema:
+{schema_example}
+
+{evidence_rules}
 
 GENERAL RULES:
 1. Output ONLY valid JSON - no markdown, no explanations, no code fences
@@ -76,8 +114,11 @@ GENERAL RULES:
         for i, source in enumerate(sources, 1):
             source_id = source.get("id", f"src_{i}")
             title = source.get("title", f"Source {i}")
-            content = source.get("content", "")[:500]
+            content = source.get("content", "")[:2000]  # M8: Increased to 2000 chars for evidence extraction
             user_parts.append(f"\n[{source_id}] {title}:\n{content}")
+
+        if require_evidence:
+            user_parts.append("\n\nIMPORTANT: For non-assumption facts, include verbatim quotes from sources in the 'evidence' array.")
     else:
         user_parts.append("\n\nNo sources provided - ALL insights will be assumptions. Set is_assumption: true and source_ids: [] for all angles.")
 
@@ -88,7 +129,7 @@ GENERAL RULES:
     return system_prompt, user_prompt
 
 
-# JSON schema for documentation
+# JSON schema for documentation (M8: Updated with evidence)
 RESEARCH_BRIEF_SCHEMA = {
     "type": "object",
     "required": ["company", "snapshot", "pains", "triggers", "competitors", "personalization_angles"],
@@ -108,6 +149,21 @@ RESEARCH_BRIEF_SCHEMA = {
                     "fact": {"type": "string"},
                     "is_assumption": {"type": "boolean"},
                     "source_ids": {"type": "array", "items": {"type": "string"}},
+                    "evidence": {
+                        "type": "array",
+                        "description": "M8: Required if is_assumption=false",
+                        "items": {
+                            "type": "object",
+                            "required": ["source_id", "quote"],
+                            "properties": {
+                                "source_id": {"type": "string"},
+                                "url": {"type": "string"},
+                                "quote": {"type": "string", "maxLength": 220},
+                                "start_char": {"type": "integer"},
+                                "end_char": {"type": "integer"},
+                            },
+                        },
+                    },
                 },
             },
         },
