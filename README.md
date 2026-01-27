@@ -1,8 +1,10 @@
 # AG Network - Autonomous Business Development Agent
 
-**Status**: ✅ **v0.1 + M1 + M2 + M3 Complete**  
+**Status**: ✅ **v0.1 + M1-M7 Complete**  
 **Package**: `agnetwork`  
-**Documentation**: `COMPLETION_SUMMARY.md`, `M3_COMPLETION_SUMMARY.md`, `PROTOCOL.md`
+**Documentation**: `COMPLETION_SUMMARY.md`, `M7_IMPLEMENTATION_SUMMARY.md`, `PROTOCOL.md`
+
+**New in M7**: Configurable workspaces with isolated storage, Work Ops & Personal Ops skill packs, per-workspace preferences!
 
 ---
 
@@ -247,10 +249,71 @@ runs/
 - **How does it work?** → See [PROTOCOL.md](PROTOCOL.md)
 - **What was built?** → See [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md)
 - **LLM integration?** → See [M3_COMPLETION_SUMMARY.md](M3_COMPLETION_SUMMARY.md)
+- **Workspaces & Isolation?** → See [M7_IMPLEMENTATION_SUMMARY.md](M7_IMPLEMENTATION_SUMMARY.md)
+
+---
+
+## M7: Workspaces (NEW!)
+
+### Create Isolated Workspaces
+
+```bash
+# Create work workspace
+ag workspace create work --set-default
+ag prefs set tone professional
+
+# Create personal workspace
+ag workspace create personal
+ag prefs set tone casual --workspace personal
+
+# List all workspaces
+ag workspace list
+
+# Check workspace health
+ag workspace doctor work
+```
+
+### Work Ops Skills
+
+```bash
+# Meeting summaries
+ag meeting-summary --topic "Q1 Planning" --notes "notes.txt"
+
+# Status updates
+ag status-update --accomplishments "Completed M7"
+
+# Decision logs (ADR-style)
+ag decision-log --title "Architecture Decision" --context "..."
+```
+
+### Personal Ops Skills
+
+```bash
+# Switch to personal workspace
+ag workspace set-default personal
+
+# Weekly planning
+ag weekly-plan --goals "Exercise 3x" --goals "Read book"
+
+# Errand lists
+ag errand-list --errands "Grocery store" --errands "Post office"
+
+# Travel planning
+ag travel-outline --destination "Paris" --dates "Feb 10-17"
+```
+
+### Workspace Isolation
+
+- ✅ Each workspace has isolated database, runs, and exports
+- ✅ Database guard prevents cross-workspace access
+- ✅ Per-workspace preferences and policies
+- ✅ 11 isolation tests verify boundaries
+
+See [M7_IMPLEMENTATION_SUMMARY.md](M7_IMPLEMENTATION_SUMMARY.md) for complete documentation.
 
 ---
 
 **Built with Master Orchestrator Protocol** ✅  
-v0.1 + M1 + M2 + M3 Complete
+v0.1 + M1-M7 Complete
 
 ---

@@ -4,22 +4,47 @@ import json
 import logging
 import logging.handlers
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from agnetwork.config import config
 from agnetwork.versioning import inject_meta
 
+if TYPE_CHECKING:
+    from agnetwork.workspaces import WorkspaceContext
+
 
 class RunManager:
-    """Manages run folders and logging."""
+    """Manages run folders and logging.
 
-    def __init__(self, command: str, slug: str):
-        """Initialize a new run session."""
+    Supports both legacy (config-based) and workspace-scoped runs.
+    """
+
+    def __init__(
+        self,
+        command: str,
+        slug: str,
+        workspace: Optional["WorkspaceContext"] = None,
+    ):
+        """Initialize a new run session.
+
+        Args:
+            command: Command name (e.g., 'research', 'targets')
+            slug: Slug for the run (e.g., company name)
+            workspace: Optional WorkspaceContext for scoped runs.
+                      If not provided, uses legacy config.runs_dir
+        """
         self.command = command
         self.slug = slug
+        self.workspace = workspace
         self.timestamp = datetime.now(timezone.utc)
         self.run_id = f"{self.timestamp.strftime('%Y%m%d_%H%M%S')}__{slug}__{command}"
-        self.run_dir = config.runs_dir / self.run_id
+
+        # Determine runs directory
+        if workspace:
+            self.run_dir = workspace.runs_dir / self.run_id
+        else:
+            self.run_dir = config.runs_dir / self.run_id
 
         # Create run directory structure
         self.run_dir.mkdir(parents=True, exist_ok=True)

@@ -100,6 +100,7 @@ class SQLiteManager:
         self.db_path = db_path or config.db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._closed = False
+        self._workspace_id_verified = False  # Track if workspace ID has been verified
         self._init_db()
 
     def __enter__(self) -> "SQLiteManager":
@@ -142,6 +143,17 @@ class SQLiteManager:
         """Initialize database schema including FTS5 tables."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+
+            # Workspace metadata table (M7: workspace isolation guard)
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS workspace_meta (
+                    workspace_id TEXT PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    last_accessed TEXT
+                )
+                """
+            )
 
             # Sources table
             cursor.execute(
@@ -368,6 +380,109 @@ class SQLiteManager:
             )
 
             conn.commit()
+
+    # ========================================================================
+    # Workspace Metadata (M7: Isolation Guard)
+    # ========================================================================
+
+    def init_workspace_metadata(self, workspace_id: str) -> None:
+        """Initialize workspace metadata for a new database.
+
+        Args:
+            workspace_id: Workspace ID to set
+
+        Raises:
+            ValueError: If workspace metadata already exists with different ID
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Check if metadata already exists
+            cursor.execute("SELECT workspace_id FROM workspace_meta")
+            row = cursor.fetchone()
+
+            if row:
+                existing_id = row[0]
+                if existing_id != workspace_id:
+                    raise ValueError(
+                        f"Database already initialized with workspace_id {existing_id}, "
+                        f"cannot reinitialize with {workspace_id}"
+                    )
+                # Already initialized with correct ID, just update access time
+                cursor.execute(
+                    "UPDATE workspace_meta SET last_accessed = ?",
+                    (datetime.now(timezone.utc).isoformat(),),
+                )
+            else:
+                # Initialize new workspace metadata
+                cursor.execute(
+                    """
+                    INSERT INTO workspace_meta (workspace_id, created_at, last_accessed)
+                    VALUES (?, ?, ?)
+                    """,
+                    (
+                        workspace_id,
+                        datetime.now(timezone.utc).isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+
+            conn.commit()
+            self._workspace_id_verified = True
+
+    def get_workspace_id(self) -> Optional[str]:
+        """Get the workspace ID from database metadata.
+
+        Returns:
+            Workspace ID if set, None if not initialized
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT workspace_id FROM workspace_meta")
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+    def verify_workspace_id(self, expected_workspace_id: str) -> None:
+        """Verify that database workspace ID matches expected ID.
+
+        This is a guard to prevent cross-workspace access.
+
+        Args:
+            expected_workspace_id: Expected workspace ID
+
+        Raises:
+            WorkspaceMismatchError: If workspace ID doesn't match
+        """
+        if self._workspace_id_verified:
+            return  # Already verified
+
+        actual_id = self.get_workspace_id()
+
+        if actual_id is None:
+            # Database not initialized, initialize it now
+            self.init_workspace_metadata(expected_workspace_id)
+            self._workspace_id_verified = True
+            return
+
+        if actual_id != expected_workspace_id:
+            from agnetwork.workspaces import WorkspaceMismatchError
+
+            raise WorkspaceMismatchError(expected=expected_workspace_id, actual=actual_id)
+
+        # Update last accessed
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE workspace_meta SET last_accessed = ?",
+                (datetime.now(timezone.utc).isoformat(),),
+            )
+            conn.commit()
+
+        self._workspace_id_verified = True
+
+    # ========================================================================
+    # Source Management
+    # ========================================================================
 
     def insert_source(
         self,
