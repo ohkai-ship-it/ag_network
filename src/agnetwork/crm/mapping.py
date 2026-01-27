@@ -325,6 +325,172 @@ class PipelineMapper:
 
         return sorted(source_ids)
 
+    def _get_scoped_source_ids(
+        self,
+        artifact_data: Dict[str, Any],
+        artifact_ref: str,
+        run_id: str,
+        fallback_source_ids: List[str],
+    ) -> List[str]:
+        """Get source_ids scoped to artifact, with fallback."""
+        scoped = self._extract_artifact_source_ids(artifact_data, artifact_ref, run_id)
+        return scoped if scoped else fallback_source_ids
+
+    def _activity_from_outreach(
+        self,
+        outreach: Dict[str, Any],
+        account_id: str,
+        contact_id: Optional[str],
+        run_id: str,
+        run_dir: Path,
+        all_source_ids: List[str],
+    ) -> Activity:
+        """Create Activity from outreach artifact."""
+        artifact_ref = "outreach"
+        channel = outreach.get("channel", "email")
+        activity_type = ActivityType.EMAIL if channel == "email" else ActivityType.LINKEDIN
+
+        return Activity(
+            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=activity_type.value),
+            account_id=account_id,
+            contact_id=contact_id,
+            activity_type=activity_type,
+            subject=outreach.get("subject_or_hook", f"Outreach to {outreach.get('company', 'company')}"),
+            body=outreach.get("body", ""),
+            direction=ActivityDirection.OUTBOUND,
+            run_id=run_id,
+            artifact_refs=[str(run_dir / "artifacts" / "outreach.json")],
+            source_ids=self._get_scoped_source_ids(outreach, artifact_ref, run_id, all_source_ids),
+            metadata={
+                "artifact_type": "outreach",
+                "persona": outreach.get("persona", ""),
+                "channel": channel,
+                "personalization_notes": outreach.get("personalization_notes", ""),
+                "sequence_steps": outreach.get("sequence_steps", []),
+                "objection_responses": outreach.get("objection_responses", {}),
+            },
+        )
+
+    def _activity_from_meeting_prep(
+        self,
+        prep: Dict[str, Any],
+        account_id: str,
+        contact_id: Optional[str],
+        run_id: str,
+        run_dir: Path,
+        all_source_ids: List[str],
+    ) -> Activity:
+        """Create Activity from meeting_prep artifact."""
+        artifact_ref = "meeting_prep"
+        agenda = prep.get("agenda", [])
+        questions = prep.get("questions", [])
+
+        body_parts = []
+        if agenda:
+            body_parts.append("## Agenda\n" + "\n".join(f"- {item}" for item in agenda))
+        if questions:
+            body_parts.append("## Questions\n" + "\n".join(f"- {q}" for q in questions))
+
+        return Activity(
+            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.NOTE.value),
+            account_id=account_id,
+            contact_id=contact_id,
+            activity_type=ActivityType.NOTE,
+            subject=f"Meeting Prep: {prep.get('meeting_type', 'discovery').title()}",
+            body="\n\n".join(body_parts),
+            direction=ActivityDirection.OUTBOUND,
+            run_id=run_id,
+            artifact_refs=[str(run_dir / "artifacts" / "meeting_prep.json")],
+            source_ids=self._get_scoped_source_ids(prep, artifact_ref, run_id, all_source_ids),
+            metadata={
+                "artifact_type": "meeting_prep",
+                "meeting_type": prep.get("meeting_type", ""),
+                "stakeholder_map": prep.get("stakeholder_map", {}),
+            },
+        )
+
+    def _activity_from_followup(
+        self,
+        followup: Dict[str, Any],
+        account_id: str,
+        contact_id: Optional[str],
+        run_id: str,
+        run_dir: Path,
+        all_source_ids: List[str],
+    ) -> Activity:
+        """Create Activity from followup artifact."""
+        artifact_ref = "followup"
+        next_steps = followup.get("next_steps", [])
+        tasks = followup.get("tasks", [])
+
+        body_parts = [followup.get("summary", "")]
+        if next_steps:
+            body_parts.append("## Next Steps\n" + "\n".join(f"- {step}" for step in next_steps))
+        if tasks:
+            body_parts.append("## Tasks\n" + "\n".join(
+                f"- {t.get('task', '')} (Owner: {t.get('owner', 'TBD')})" for t in tasks
+            ))
+
+        return Activity(
+            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.EMAIL.value),
+            account_id=account_id,
+            contact_id=contact_id,
+            activity_type=ActivityType.EMAIL,
+            subject=f"Follow-up: {followup.get('company', 'company')}",
+            body="\n\n".join(body_parts),
+            direction=ActivityDirection.OUTBOUND,
+            run_id=run_id,
+            artifact_refs=[str(run_dir / "artifacts" / "followup.json")],
+            source_ids=self._get_scoped_source_ids(followup, artifact_ref, run_id, all_source_ids),
+            metadata={
+                "artifact_type": "followup",
+                "crm_notes": followup.get("crm_notes", ""),
+            },
+        )
+
+    def _activity_from_research_brief(
+        self,
+        brief: Dict[str, Any],
+        account_id: str,
+        run_id: str,
+        run_dir: Path,
+        all_source_ids: List[str],
+    ) -> Activity:
+        """Create Activity from research_brief artifact."""
+        artifact_ref = "research_brief"
+        pains = brief.get("pains", [])
+        triggers = brief.get("triggers", [])
+        angles = brief.get("personalization_angles", [])
+
+        body_parts = []
+        if brief.get("snapshot"):
+            body_parts.append(f"## Company Snapshot\n{brief['snapshot']}")
+        if pains:
+            body_parts.append("## Key Pains\n" + "\n".join(f"- {p}" for p in pains))
+        if triggers:
+            body_parts.append("## Triggers\n" + "\n".join(f"- {t}" for t in triggers))
+        if angles:
+            body_parts.append("## Personalization Angles\n" + "\n".join(
+                f"- {a.get('name', '')}: {a.get('fact', '')}" for a in angles
+            ))
+
+        return Activity(
+            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.NOTE.value),
+            account_id=account_id,
+            contact_id=None,  # Research is at account level
+            activity_type=ActivityType.NOTE,
+            subject=f"Research Brief: {brief.get('company', 'company')}",
+            body="\n\n".join(body_parts),
+            direction=ActivityDirection.OUTBOUND,
+            run_id=run_id,
+            artifact_refs=[str(run_dir / "artifacts" / "research_brief.json")],
+            source_ids=self._get_scoped_source_ids(brief, artifact_ref, run_id, all_source_ids),
+            metadata={
+                "artifact_type": "research_brief",
+                "competitors": brief.get("competitors", []),
+            },
+        )
+
     def _create_activities(
         self,
         account_id: str,
@@ -341,198 +507,25 @@ class PipelineMapper:
         activities = []
         primary_contact_id = contacts[0].contact_id if contacts else None
 
-        # Outreach draft → email/linkedin activity
         if "outreach" in artifacts:
-            outreach = artifacts["outreach"]
-            channel = outreach.get("channel", "email")
-            activity_type = ActivityType.EMAIL if channel == "email" else ActivityType.LINKEDIN
-            artifact_ref = "outreach"
+            activities.append(self._activity_from_outreach(
+                artifacts["outreach"], account_id, primary_contact_id, run_id, run_dir, all_source_ids
+            ))
 
-            # M6.1: Deterministic ID
-            activity_id = make_activity_id(
-                run_id=run_id,
-                artifact_ref=artifact_ref,
-                activity_type=activity_type.value,
-            )
-
-            # M6.1: Activity-scoped source_ids
-            scoped_source_ids = self._extract_artifact_source_ids(
-                outreach, artifact_ref, run_id
-            )
-            # Fallback to all_source_ids if no artifact-specific sources
-            if not scoped_source_ids:
-                scoped_source_ids = all_source_ids
-
-            activities.append(
-                Activity(
-                    activity_id=activity_id,
-                    account_id=account_id,
-                    contact_id=primary_contact_id,
-                    activity_type=activity_type,
-                    subject=outreach.get("subject_or_hook", f"Outreach to {outreach.get('company', 'company')}"),
-                    body=outreach.get("body", ""),
-                    direction=ActivityDirection.OUTBOUND,
-                    run_id=run_id,
-                    artifact_refs=[str(run_dir / "artifacts" / "outreach.json")],
-                    source_ids=scoped_source_ids,
-                    metadata={
-                        "artifact_type": "outreach",
-                        "persona": outreach.get("persona", ""),
-                        "channel": channel,
-                        "personalization_notes": outreach.get("personalization_notes", ""),
-                        "sequence_steps": outreach.get("sequence_steps", []),
-                        "objection_responses": outreach.get("objection_responses", {}),
-                    },
-                )
-            )
-
-        # Meeting prep → note activity
         if "meeting_prep" in artifacts:
-            prep = artifacts["meeting_prep"]
-            artifact_ref = "meeting_prep"
-            agenda = prep.get("agenda", [])
-            questions = prep.get("questions", [])
+            activities.append(self._activity_from_meeting_prep(
+                artifacts["meeting_prep"], account_id, primary_contact_id, run_id, run_dir, all_source_ids
+            ))
 
-            # M6.1: Deterministic ID
-            activity_id = make_activity_id(
-                run_id=run_id,
-                artifact_ref=artifact_ref,
-                activity_type=ActivityType.NOTE.value,
-            )
-
-            # M6.1: Activity-scoped source_ids
-            scoped_source_ids = self._extract_artifact_source_ids(
-                prep, artifact_ref, run_id
-            )
-            if not scoped_source_ids:
-                scoped_source_ids = all_source_ids
-
-            body_parts = []
-            if agenda:
-                body_parts.append("## Agenda\n" + "\n".join(f"- {item}" for item in agenda))
-            if questions:
-                body_parts.append("## Questions\n" + "\n".join(f"- {q}" for q in questions))
-
-            activities.append(
-                Activity(
-                    activity_id=activity_id,
-                    account_id=account_id,
-                    contact_id=primary_contact_id,
-                    activity_type=ActivityType.NOTE,
-                    subject=f"Meeting Prep: {prep.get('meeting_type', 'discovery').title()}",
-                    body="\n\n".join(body_parts),
-                    direction=ActivityDirection.OUTBOUND,
-                    run_id=run_id,
-                    artifact_refs=[str(run_dir / "artifacts" / "meeting_prep.json")],
-                    source_ids=scoped_source_ids,
-                    metadata={
-                        "artifact_type": "meeting_prep",
-                        "meeting_type": prep.get("meeting_type", ""),
-                        "stakeholder_map": prep.get("stakeholder_map", {}),
-                    },
-                )
-            )
-
-        # Follow-up → outbound draft activity
         if "followup" in artifacts:
-            followup = artifacts["followup"]
-            artifact_ref = "followup"
-            next_steps = followup.get("next_steps", [])
-            tasks = followup.get("tasks", [])
+            activities.append(self._activity_from_followup(
+                artifacts["followup"], account_id, primary_contact_id, run_id, run_dir, all_source_ids
+            ))
 
-            # M6.1: Deterministic ID
-            activity_id = make_activity_id(
-                run_id=run_id,
-                artifact_ref=artifact_ref,
-                activity_type=ActivityType.EMAIL.value,
-            )
-
-            # M6.1: Activity-scoped source_ids
-            scoped_source_ids = self._extract_artifact_source_ids(
-                followup, artifact_ref, run_id
-            )
-            if not scoped_source_ids:
-                scoped_source_ids = all_source_ids
-
-            body_parts = [followup.get("summary", "")]
-            if next_steps:
-                body_parts.append("## Next Steps\n" + "\n".join(f"- {step}" for step in next_steps))
-            if tasks:
-                body_parts.append("## Tasks\n" + "\n".join(
-                    f"- {t.get('task', '')} (Owner: {t.get('owner', 'TBD')})" for t in tasks
-                ))
-
-            activities.append(
-                Activity(
-                    activity_id=activity_id,
-                    account_id=account_id,
-                    contact_id=primary_contact_id,
-                    activity_type=ActivityType.EMAIL,
-                    subject=f"Follow-up: {followup.get('company', 'company')}",
-                    body="\n\n".join(body_parts),
-                    direction=ActivityDirection.OUTBOUND,
-                    run_id=run_id,
-                    artifact_refs=[str(run_dir / "artifacts" / "followup.json")],
-                    source_ids=scoped_source_ids,
-                    metadata={
-                        "artifact_type": "followup",
-                        "crm_notes": followup.get("crm_notes", ""),
-                    },
-                )
-            )
-
-        # Research brief → note activity (optional, informational)
         if "research_brief" in artifacts:
-            brief = artifacts["research_brief"]
-            artifact_ref = "research_brief"
-            pains = brief.get("pains", [])
-            triggers = brief.get("triggers", [])
-            angles = brief.get("personalization_angles", [])
-
-            # M6.1: Deterministic ID
-            activity_id = make_activity_id(
-                run_id=run_id,
-                artifact_ref=artifact_ref,
-                activity_type=ActivityType.NOTE.value,
-            )
-
-            # M6.1: Activity-scoped source_ids
-            scoped_source_ids = self._extract_artifact_source_ids(
-                brief, artifact_ref, run_id
-            )
-            if not scoped_source_ids:
-                scoped_source_ids = all_source_ids
-
-            body_parts = []
-            if brief.get("snapshot"):
-                body_parts.append(f"## Company Snapshot\n{brief['snapshot']}")
-            if pains:
-                body_parts.append("## Key Pains\n" + "\n".join(f"- {p}" for p in pains))
-            if triggers:
-                body_parts.append("## Triggers\n" + "\n".join(f"- {t}" for t in triggers))
-            if angles:
-                body_parts.append("## Personalization Angles\n" + "\n".join(
-                    f"- {a.get('name', '')}: {a.get('fact', '')}" for a in angles
-                ))
-
-            activities.append(
-                Activity(
-                    activity_id=activity_id,
-                    account_id=account_id,
-                    contact_id=None,  # Research is at account level
-                    activity_type=ActivityType.NOTE,
-                    subject=f"Research Brief: {brief.get('company', 'company')}",
-                    body="\n\n".join(body_parts),
-                    direction=ActivityDirection.OUTBOUND,
-                    run_id=run_id,
-                    artifact_refs=[str(run_dir / "artifacts" / "research_brief.json")],
-                    source_ids=scoped_source_ids,
-                    metadata={
-                        "artifact_type": "research_brief",
-                        "competitors": brief.get("competitors", []),
-                    },
-                )
-            )
+            activities.append(self._activity_from_research_brief(
+                artifacts["research_brief"], account_id, run_id, run_dir, all_source_ids
+            ))
 
         return activities
 

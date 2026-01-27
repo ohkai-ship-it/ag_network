@@ -43,6 +43,7 @@ def temp_storage():
         db_path = Path(tmpdir) / "test.sqlite"
         storage = CRMStorage(db_path=db_path)
         yield storage
+        storage.close()  # M6.2: Ensure DB is closed before temp cleanup
 
 
 @pytest.fixture
@@ -231,23 +232,27 @@ class TestFileCRMAdapterRoundTrip:
         fresh_storage = CRMStorage(db_path=base_path / "fresh.sqlite")
         fresh_adapter = FileCRMAdapter(storage=fresh_storage, base_path=base_path)
 
-        # Import into fresh storage
-        result = fresh_adapter.import_data(str(export_dir), dry_run=False)
-        assert result.success
+        try:
+            # Import into fresh storage
+            result = fresh_adapter.import_data(str(export_dir), dry_run=False)
+            assert result.success
 
-        # Verify data
-        accounts = fresh_adapter.list_accounts()
-        assert len(accounts) == 1
-        assert accounts[0].name == "Test Company"
-        assert accounts[0].domain == "test.com"
-        assert accounts[0].tags == ["tag1", "tag2"]
+            # Verify data
+            accounts = fresh_adapter.list_accounts()
+            assert len(accounts) == 1
+            assert accounts[0].name == "Test Company"
+            assert accounts[0].domain == "test.com"
+            assert accounts[0].tags == ["tag1", "tag2"]
 
-        contacts = fresh_adapter.list_contacts()
-        assert len(contacts) == 2
+            contacts = fresh_adapter.list_contacts()
+            assert len(contacts) == 2
 
-        activities = fresh_adapter.list_activities()
-        assert len(activities) == 1
-        assert activities[0].source_ids == ["src_1", "src_2"]
+            activities = fresh_adapter.list_activities()
+            assert len(activities) == 1
+            assert activities[0].source_ids == ["src_1", "src_2"]
+        finally:
+            # M6.2: Ensure fresh storage is closed before fixture cleanup
+            fresh_storage.close()
 
 
 class TestAdapterRegistry:

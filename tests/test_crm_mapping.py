@@ -152,6 +152,7 @@ def temp_db():
         db_path = Path(tmpdir) / "test.sqlite"
         db = SQLiteManager(db_path=db_path)
         yield db
+        db.close()  # M6.2: Ensure DB is closed before temp cleanup
 
 
 class TestPipelineMapper:
@@ -197,20 +198,31 @@ class TestPipelineMapper:
         # Should have: outreach, meeting_prep, followup, research_brief
         assert len(package.activities) >= 3
 
+        # M6.2: Find activities by metadata.artifact_type (M6.1 changed IDs to hashes)
         # Check outreach activity
         outreach_act = next(
-            (a for a in package.activities if "outreach" in a.activity_id), None
+            (a for a in package.activities
+             if a.metadata.get("artifact_type") == "outreach"),
+            None
         )
-        assert outreach_act is not None
+        assert outreach_act is not None, (
+            f"Expected outreach activity, got: "
+            f"{[(a.activity_id, a.metadata.get('artifact_type')) for a in package.activities]}"
+        )
         assert outreach_act.activity_type == ActivityType.EMAIL
         assert outreach_act.direction.value == "outbound"
         assert outreach_act.run_id == run_id
 
         # Check meeting_prep activity
         prep_act = next(
-            (a for a in package.activities if "meeting_prep" in a.activity_id), None
+            (a for a in package.activities
+             if a.metadata.get("artifact_type") == "meeting_prep"),
+            None
         )
-        assert prep_act is not None
+        assert prep_act is not None, (
+            f"Expected meeting_prep activity, got: "
+            f"{[(a.activity_id, a.metadata.get('artifact_type')) for a in package.activities]}"
+        )
         assert prep_act.activity_type == ActivityType.NOTE
 
     def test_map_run_collects_source_ids(self, temp_run_dir, temp_db):

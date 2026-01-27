@@ -7,14 +7,15 @@ Tests cover:
 """
 
 import os
-import pytest
 from unittest.mock import patch
 
-from agnetwork.crm.registry import (
-    CRMAdapterRegistry,
-    CRMAdapterFactory,
-)
+import pytest
+
 from agnetwork.crm.adapters import FileCRMAdapter
+from agnetwork.crm.registry import (
+    CRMAdapterFactory,
+    CRMAdapterRegistry,
+)
 
 
 class TestCRMAdapterRegistry:

@@ -13,9 +13,11 @@ M6: No sending. Sequences are exported as planned activities
 (is_planned=True, scheduled_for=<date>) in the CRM package.
 """
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from agnetwork.crm.models import (
@@ -147,10 +149,6 @@ class SequencePlan:
 # =============================================================================
 # Template Loading System (M6.1)
 # =============================================================================
-
-import json
-from pathlib import Path
-from typing import Dict
 
 
 class SequenceTemplateLoader:

@@ -1,8 +1,10 @@
 """CLI entry point for AG Network."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import typer
 from typer import Typer
@@ -12,6 +14,10 @@ from agnetwork.config import config
 from agnetwork.orchestrator import RunManager
 from agnetwork.skills.research_brief import ResearchBriefSkill
 from agnetwork.tools.ingest import SourceIngestor
+
+if TYPE_CHECKING:
+    from agnetwork.kernel import ExecutionMode, PipelineResult
+    from agnetwork.tools.llm import LLMFactory
 
 # Initialize Typer app
 app = Typer(
@@ -384,6 +390,150 @@ def validate_run(
         raise typer.Exit(1)
 
 
+# =============================================================================
+# Pipeline Helpers (M6.3 refactored)
+# =============================================================================
+
+
+def _resolve_execution_mode(mode: str) -> "ExecutionMode":
+    """Parse and validate execution mode string.
+
+    Args:
+        mode: Mode string ('manual' or 'llm')
+
+    Returns:
+        ExecutionMode enum value
+
+    Raises:
+        typer.Exit: If mode is invalid
+    """
+    from agnetwork.kernel import ExecutionMode
+
+    try:
+        return ExecutionMode(mode.lower())
+    except ValueError:
+        typer.echo(f"❌ Invalid mode: {mode}. Use 'manual' or 'llm'", err=True)
+        raise typer.Exit(1)
+
+
+def _setup_llm_factory(exec_mode: "ExecutionMode") -> Optional["LLMFactory"]:
+    """Setup LLM factory if LLM mode is requested.
+
+    Args:
+        exec_mode: The execution mode
+
+    Returns:
+        LLMFactory instance or None for manual mode
+
+    Raises:
+        typer.Exit: If LLM mode requested but not enabled
+    """
+    from agnetwork.kernel import ExecutionMode
+
+    if exec_mode != ExecutionMode.LLM:
+        return None
+
+    from agnetwork.tools.llm import LLMFactory
+
+    llm_factory = LLMFactory.from_env()
+
+    if not llm_factory.is_enabled:
+        typer.echo(
+            "⚠️  LLM mode requested but AG_LLM_ENABLED=0. "
+            "Set AG_LLM_ENABLED=1 in your environment or .env file.",
+            err=True,
+        )
+        raise typer.Exit(1)
+
+    typer.echo(f"🤖 Running in LLM mode (provider: {llm_factory.config.default_provider})")
+    return llm_factory
+
+
+def _fetch_urls_for_pipeline(
+    urls: List[str],
+    company: str,
+) -> List[str]:
+    """Fetch URLs and store them for pipeline use.
+
+    Args:
+        urls: List of URLs to fetch
+        company: Company name for run slug
+
+    Returns:
+        List of captured source IDs
+    """
+    from agnetwork.orchestrator import RunManager
+    from agnetwork.storage.sqlite import SQLiteManager
+    from agnetwork.tools.web import SourceCapture
+
+    typer.echo(f"🌐 Fetching {len(urls)} URLs...")
+
+    temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"))
+    capture = SourceCapture(temp_run.run_dir / "sources")
+    db = SQLiteManager()
+
+    captured_source_ids = []
+    for url in urls:
+        typer.echo(f"   Fetching: {url[:60]}...")
+        result = capture.capture_url(url)
+        if result.is_success:
+            typer.echo(f"   ✅ {result.title or 'No title'}")
+            db.upsert_source_from_capture(
+                source_id=result.source_id,
+                url=result.url,
+                final_url=result.final_url,
+                title=result.title,
+                clean_text=result.clean_text,
+                content_hash=result.content_hash,
+                fetched_at=result.fetched_at.isoformat(),
+                run_id=temp_run.run_id,
+            )
+            captured_source_ids.append(result.source_id)
+        else:
+            typer.echo(f"   ❌ Failed: {result.error}", err=True)
+
+    typer.echo(f"✅ Captured {len(captured_source_ids)} URLs")
+    return captured_source_ids
+
+
+def _print_pipeline_result(
+    result: "PipelineResult",
+    exec_mode: "ExecutionMode",
+    captured_source_ids: List[str],
+) -> None:
+    """Print pipeline execution result to terminal.
+
+    Args:
+        result: The pipeline result
+        exec_mode: Execution mode used
+        captured_source_ids: List of captured source IDs
+    """
+    from agnetwork.kernel import ExecutionMode
+
+    if result.success:
+        mode_label = "LLM" if exec_mode == ExecutionMode.LLM else "manual"
+        memory_label = " +memory" if result.memory_enabled else ""
+        urls_label = f" +{len(captured_source_ids)}urls" if captured_source_ids else ""
+        typer.echo(
+            f"✅ Pipeline completed successfully! (mode: {mode_label}{memory_label}{urls_label})"
+        )
+        typer.echo(f"📁 Run folder: {config.runs_dir / result.run_id}")
+        typer.echo(f"📄 Artifacts created: {len(result.artifacts_written)}")
+        for artifact in result.artifacts_written:
+            typer.echo(f"   - {artifact}")
+        if result.claims_persisted > 0:
+            typer.echo(f"📋 Claims persisted: {result.claims_persisted}")
+    else:
+        typer.echo("❌ Pipeline failed!")
+        for error in result.errors:
+            typer.echo(f"   Error: {error}", err=True)
+
+        if result.verification_issues:
+            typer.echo("Verification issues:")
+            for issue in result.verification_issues:
+                typer.echo(f"   - [{issue.get('severity')}] {issue.get('message')}")
+
+
 @app.command(name="run-pipeline")
 def run_pipeline(
     company: str = typer.Argument(..., help="Company name to run pipeline for"),
@@ -442,79 +592,26 @@ def run_pipeline(
     - --url: Fetch URLs into sources before running pipeline
     """
     from agnetwork.eval.verifier import Verifier
-    from agnetwork.kernel import ExecutionMode, KernelExecutor, TaskSpec, TaskType
+    from agnetwork.kernel import KernelExecutor, TaskSpec, TaskType
 
-    # Validate and parse mode
-    try:
-        exec_mode = ExecutionMode(mode.lower())
-    except ValueError:
-        typer.echo(f"❌ Invalid mode: {mode}. Use 'manual' or 'llm'", err=True)
-        raise typer.Exit(1)
-
-    # Check LLM mode requirements
-    llm_factory = None
-    if exec_mode == ExecutionMode.LLM:
-        from agnetwork.tools.llm import LLMFactory
-
-        llm_factory = LLMFactory.from_env()
-
-        if not llm_factory.is_enabled:
-            typer.echo(
-                "⚠️  LLM mode requested but AG_LLM_ENABLED=0. "
-                "Set AG_LLM_ENABLED=1 in your environment or .env file.",
-                err=True,
-            )
-            raise typer.Exit(1)
-
-        typer.echo(f"🤖 Running in LLM mode (provider: {llm_factory.config.default_provider})")
+    # Resolve execution mode and LLM factory
+    exec_mode = _resolve_execution_mode(mode)
+    llm_factory = _setup_llm_factory(exec_mode)
 
     typer.echo(f"🚀 Running full BD pipeline for {company}...")
 
-    # M5: Fetch URLs if provided
-    captured_source_ids = []
+    # Fetch URLs if provided
+    captured_source_ids: List[str] = []
     if urls:
-        typer.echo(f"🌐 Fetching {len(urls)} URLs...")
-        from agnetwork.orchestrator import RunManager
-        from agnetwork.storage.sqlite import SQLiteManager
-        from agnetwork.tools.web import SourceCapture
-
-        # Create a temporary run to capture sources
-        temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"))
-        capture = SourceCapture(temp_run.run_dir / "sources")
-        db = SQLiteManager()
-
-        for url in urls:
-            typer.echo(f"   Fetching: {url[:60]}...")
-            result = capture.capture_url(url)
-            if result.is_success:
-                typer.echo(f"   ✅ {result.title or 'No title'}")
-                # Upsert to database for FTS indexing
-                db.upsert_source_from_capture(
-                    source_id=result.source_id,
-                    url=result.url,
-                    final_url=result.final_url,
-                    title=result.title,
-                    clean_text=result.clean_text,
-                    content_hash=result.content_hash,
-                    fetched_at=result.fetched_at.isoformat(),
-                    run_id=temp_run.run_id,
-                )
-                captured_source_ids.append(result.source_id)
-            else:
-                typer.echo(f"   ❌ Failed: {result.error}", err=True)
-
-        typer.echo(f"✅ Captured {len(captured_source_ids)} URLs")
-
-        # Enable memory automatically when URLs are provided
+        captured_source_ids = _fetch_urls_for_pipeline(urls, company)
         if captured_source_ids and not use_memory:
             use_memory = True
             typer.echo("🧠 Memory retrieval auto-enabled (URLs provided)")
 
-    # M4: Memory retrieval status
     if use_memory:
         typer.echo("🧠 Memory retrieval enabled (FTS5)")
 
-    # Build task spec
+    # Build task spec and execute
     task_spec = TaskSpec(
         task_type=TaskType.PIPELINE,
         inputs={
@@ -527,11 +624,10 @@ def run_pipeline(
             "channel": channel,
             "meeting_type": meeting_type,
             "notes": notes,
-            "source_ids": captured_source_ids,  # M5: Pass captured source IDs
+            "source_ids": captured_source_ids,
         },
     )
 
-    # Create executor with optional verifier and memory flag
     verifier = Verifier() if verify else None
     executor = KernelExecutor(
         verifier=verifier,
@@ -540,32 +636,10 @@ def run_pipeline(
         use_memory=use_memory,
     )
 
-    # Execute pipeline
     result = executor.execute_task(task_spec)
+    _print_pipeline_result(result, exec_mode, captured_source_ids)
 
-    if result.success:
-        mode_label = "LLM" if exec_mode == ExecutionMode.LLM else "manual"
-        memory_label = " +memory" if result.memory_enabled else ""
-        urls_label = f" +{len(captured_source_ids)}urls" if captured_source_ids else ""
-        typer.echo(
-            f"✅ Pipeline completed successfully! (mode: {mode_label}{memory_label}{urls_label})"
-        )
-        typer.echo(f"📁 Run folder: {config.runs_dir / result.run_id}")
-        typer.echo(f"📄 Artifacts created: {len(result.artifacts_written)}")
-        for artifact in result.artifacts_written:
-            typer.echo(f"   - {artifact}")
-        if result.claims_persisted > 0:
-            typer.echo(f"📋 Claims persisted: {result.claims_persisted}")
-    else:
-        typer.echo("❌ Pipeline failed!")
-        for error in result.errors:
-            typer.echo(f"   Error: {error}", err=True)
-
-        if result.verification_issues:
-            typer.echo("Verification issues:")
-            for issue in result.verification_issues:
-                typer.echo(f"   - [{issue.get('severity')}] {issue.get('message')}")
-
+    if not result.success:
         raise typer.Exit(1)
 
 
@@ -801,6 +875,42 @@ def crm_import(
         raise typer.Exit(1)
 
 
+# =============================================================================
+# CRM List Helpers (M6.3 refactored)
+# =============================================================================
+
+
+def _render_accounts_list(accounts: list) -> None:
+    """Render accounts list to terminal."""
+    typer.echo(f"\n🏢 Accounts ({len(accounts)}):")
+    for acc in accounts:
+        typer.echo(f"  [{acc.account_id}] {acc.name}")
+        if acc.domain:
+            typer.echo(f"      Domain: {acc.domain}")
+
+
+def _render_contacts_list(contacts: list) -> None:
+    """Render contacts list to terminal."""
+    typer.echo(f"\n👤 Contacts ({len(contacts)}):")
+    for con in contacts:
+        typer.echo(f"  [{con.contact_id}] {con.full_name}")
+        if con.role_title:
+            typer.echo(f"      Title: {con.role_title}")
+        if con.email:
+            typer.echo(f"      Email: {con.email}")
+
+
+def _render_activities_list(activities: list) -> None:
+    """Render activities list to terminal."""
+    typer.echo(f"\n📋 Activities ({len(activities)}):")
+    for act in activities:
+        status = "📅 PLANNED" if act.is_planned else "✅"
+        typer.echo(f"  {status} [{act.activity_id}] {act.subject}")
+        typer.echo(f"      Type: {act.activity_type.value} | {act.direction.value}")
+        if act.run_id:
+            typer.echo(f"      Run: {act.run_id}")
+
+
 @crm_app.command(name="list")
 def crm_list(
     entity: str = typer.Argument(
@@ -822,38 +932,23 @@ def crm_list(
 
     adapter = CRMAdapterFactory.from_env()
 
-    if entity == "accounts":
-        accounts = adapter.list_accounts(limit=limit)
-        typer.echo(f"\n🏢 Accounts ({len(accounts)}):")
-        for acc in accounts:
-            typer.echo(f"  [{acc.account_id}] {acc.name}")
-            if acc.domain:
-                typer.echo(f"      Domain: {acc.domain}")
+    # Dispatch table for entity handlers
+    handlers = {
+        "accounts": lambda: _render_accounts_list(adapter.list_accounts(limit=limit)),
+        "contacts": lambda: _render_contacts_list(
+            adapter.list_contacts(account_id=account_id, limit=limit)
+        ),
+        "activities": lambda: _render_activities_list(
+            adapter.list_activities(account_id=account_id, limit=limit)
+        ),
+    }
 
-    elif entity == "contacts":
-        contacts = adapter.list_contacts(account_id=account_id, limit=limit)
-        typer.echo(f"\n👤 Contacts ({len(contacts)}):")
-        for con in contacts:
-            typer.echo(f"  [{con.contact_id}] {con.full_name}")
-            if con.role_title:
-                typer.echo(f"      Title: {con.role_title}")
-            if con.email:
-                typer.echo(f"      Email: {con.email}")
-
-    elif entity == "activities":
-        activities = adapter.list_activities(account_id=account_id, limit=limit)
-        typer.echo(f"\n📋 Activities ({len(activities)}):")
-        for act in activities:
-            status = "📅 PLANNED" if act.is_planned else "✅"
-            typer.echo(f"  {status} [{act.activity_id}] {act.subject}")
-            typer.echo(f"      Type: {act.activity_type.value} | {act.direction.value}")
-            if act.run_id:
-                typer.echo(f"      Run: {act.run_id}")
-
-    else:
+    if entity not in handlers:
         typer.echo(f"❌ Unknown entity type: {entity}", err=True)
         typer.echo("   Valid types: accounts, contacts, activities")
         raise typer.Exit(1)
+
+    handlers[entity]()
 
 
 @crm_app.command(name="search")
@@ -938,10 +1033,8 @@ def sequence_plan(
         ag sequence plan <run_id> --start 2026-02-01 --out ./sequences
     """
     import json
-    from datetime import datetime
+    from datetime import datetime, timezone
 
-    from agnetwork.crm.adapters import FileCRMAdapter
-    from agnetwork.crm.mapping import PipelineMapper
     from agnetwork.crm.models import CRMExportManifest, CRMExportPackage
     from agnetwork.crm.sequence import SequenceBuilder
 

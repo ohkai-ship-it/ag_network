@@ -14,7 +14,7 @@ Key components:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -119,7 +119,7 @@ class EvidenceBundle(BaseModel):
     sources: List[SourceRef] = Field(default_factory=list)
     artifacts: List[ArtifactSummary] = Field(default_factory=list)
     query: Optional[str] = None
-    retrieval_timestamp: datetime = Field(default_factory=datetime.utcnow)
+    retrieval_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def source_ids(self) -> List[str]:

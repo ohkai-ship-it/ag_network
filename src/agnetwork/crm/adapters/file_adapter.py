@@ -154,7 +154,6 @@ class FileCRMAdapter(BaseCRMAdapter):
         M6.1: Checks manifest version compatibility before import.
         """
         from agnetwork.crm.version import (
-            ManifestVersionError,
             VersionCompatibility,
             check_version_compatibility,
         )

@@ -85,6 +85,10 @@ class SQLiteManager:
 
     Provides CRUD operations for sources, companies, artifacts, and claims.
     Includes FTS5 full-text search support for memory retrieval.
+
+    Supports context manager protocol for automatic cleanup:
+        with SQLiteManager(db_path) as db:
+            db.add_source(...)
     """
 
     def __init__(self, db_path: Optional[Path] = None):
@@ -95,7 +99,44 @@ class SQLiteManager:
         """
         self.db_path = db_path or config.db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._closed = False
         self._init_db()
+
+    def __enter__(self) -> "SQLiteManager":
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit context manager, ensuring cleanup."""
+        self.close()
+
+    def close(self) -> None:
+        """Close the storage and release all database resources.
+
+        This method ensures all SQLite connections are properly closed and
+        any WAL/journal files are cleaned up. Call this before deleting
+        the database file, especially on Windows.
+        """
+        if self._closed:
+            return
+        self._closed = True
+
+        # Force garbage collection to release any lingering connections
+        import gc
+        gc.collect()
+
+        # Force a checkpoint and close any WAL files
+        try:
+            conn = sqlite3.connect(self.db_path)
+            # Disable WAL mode to ensure no -wal/-shm files remain
+            conn.execute("PRAGMA journal_mode=DELETE")
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.close()
+        except sqlite3.Error:
+            pass  # Database may not exist or be accessible
+
+        # Final GC pass
+        gc.collect()
 
     def _init_db(self) -> None:
         """Initialize database schema including FTS5 tables."""

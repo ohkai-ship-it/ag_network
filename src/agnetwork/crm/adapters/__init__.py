@@ -18,6 +18,7 @@ from agnetwork.crm.adapters.base import (
 )
 from agnetwork.crm.adapters.file_adapter import FileCRMAdapter
 
+
 # Lazy import to avoid circular dependency
 def __getattr__(name):
     """Lazy imports for registry components."""

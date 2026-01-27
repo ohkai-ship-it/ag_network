@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 
 class ActivityType(str, Enum):
@@ -45,10 +45,12 @@ class ExternalRef(BaseModel):
     last_synced_at: Optional[datetime] = None
     sync_hash: Optional[str] = None  # Hash of last synced state for change detection
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    @field_serializer("last_synced_at")
+    def serialize_datetime(self, v: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to ISO format."""
+        return v.isoformat() if v else None
 
 
 class Account(BaseModel):
@@ -86,10 +88,12 @@ class Account(BaseModel):
     # Optional metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, v: datetime) -> str:
+        """Serialize datetime to ISO format."""
+        return v.isoformat()
 
     def get_external_id(self, provider: str) -> Optional[str]:
         """Get the external ID for a specific provider."""
@@ -141,10 +145,12 @@ class Contact(BaseModel):
     # Optional metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    @field_serializer("created_at", "updated_at")
+    def serialize_datetime(self, v: datetime) -> str:
+        """Serialize datetime to ISO format."""
+        return v.isoformat()
 
     def get_external_id(self, provider: str) -> Optional[str]:
         """Get the external ID for a specific provider."""
@@ -214,10 +220,12 @@ class Activity(BaseModel):
     # Optional metadata
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    @field_serializer("created_at", "updated_at", "occurred_at", "scheduled_for")
+    def serialize_datetime(self, v: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to ISO format."""
+        return v.isoformat() if v else None
 
     def get_external_id(self, provider: str) -> Optional[str]:
         """Get the external ID for a specific provider."""
@@ -267,10 +275,12 @@ class Opportunity(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    @field_serializer("created_at", "updated_at", "close_date")
+    def serialize_datetime(self, v: Optional[datetime]) -> Optional[str]:
+        """Serialize datetime to ISO format."""
+        return v.isoformat() if v else None
 
 
 # =============================================================================
@@ -320,10 +330,12 @@ class CRMExportManifest(BaseModel):
     # Files in export
     files: List[str] = Field(default_factory=list, description="Files in export package")
 
-    class Config:
-        """Pydantic config."""
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    @field_serializer("created_at")
+    def serialize_datetime(self, v: datetime) -> str:
+        """Serialize datetime to ISO format."""
+        return v.isoformat()
 
 
 class CRMExportPackage(BaseModel):
@@ -337,7 +349,4 @@ class CRMExportPackage(BaseModel):
     contacts: List[Contact] = Field(default_factory=list)
     activities: List[Activity] = Field(default_factory=list)
 
-    class Config:
-        """Pydantic config."""
-
-        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
+    model_config = ConfigDict(ser_json_timedelta="iso8601")

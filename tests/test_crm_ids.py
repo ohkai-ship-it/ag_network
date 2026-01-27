@@ -11,8 +11,8 @@ import pytest
 
 from agnetwork.crm.ids import (
     make_account_id,
-    make_contact_id,
     make_activity_id,
+    make_contact_id,
     make_sequence_activity_id,
 )
 

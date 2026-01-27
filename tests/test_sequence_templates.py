@@ -8,12 +8,10 @@ Tests cover:
 """
 
 import json
-import pytest
 from pathlib import Path
 
 from agnetwork.crm.sequence import (
     SequenceBuilder,
-    SequenceTemplateLoader,
     get_template_loader,
 )
 

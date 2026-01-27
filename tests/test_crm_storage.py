@@ -29,6 +29,7 @@ def temp_db():
         db_path = Path(tmpdir) / "test_crm.sqlite"
         storage = CRMStorage(db_path=db_path)
         yield storage
+        storage.close()  # M6.2: Ensure DB is closed before temp cleanup
 
 
 class TestCRMStorageAccounts:
@@ -305,3 +306,52 @@ class TestCRMStorageStats:
         assert stats["accounts"] == 1
         assert stats["contacts"] == 2
         assert stats["activities"] == 1
+
+
+class TestCRMStorageLifecycle:
+    """Tests for storage lifecycle management (M6.2)."""
+
+    def test_close_allows_file_deletion(self, tmp_path):
+        """After close(), the database file can be deleted on Windows.
+
+        This is a regression test for Windows SQLite file locking issues.
+        """
+        db_path = tmp_path / "lifecycle_test.sqlite"
+        storage = CRMStorage(db_path=db_path)
+
+        # Write some data
+        storage.insert_account(Account(account_id="acc_test", name="Test"))
+
+        # Close storage
+        storage.close()
+
+        # File should be deletable after close
+        assert db_path.exists()
+        db_path.unlink()  # This would fail before M6.2 fix on Windows
+        assert not db_path.exists()
+
+    def test_context_manager_cleanup(self, tmp_path):
+        """Context manager ensures proper cleanup."""
+        db_path = tmp_path / "context_test.sqlite"
+
+        with CRMStorage(db_path=db_path) as storage:
+            storage.insert_account(Account(account_id="acc_ctx", name="Context Test"))
+
+        # File should be deletable after context exit
+        assert db_path.exists()
+        db_path.unlink()
+        assert not db_path.exists()
+
+    def test_double_close_is_safe(self, tmp_path):
+        """Calling close() multiple times is safe."""
+        db_path = tmp_path / "double_close.sqlite"
+        storage = CRMStorage(db_path=db_path)
+        storage.insert_account(Account(account_id="acc_dbl", name="Double"))
+
+        # Close multiple times - should not raise
+        storage.close()
+        storage.close()
+        storage.close()
+
+        # File should still be deletable
+        db_path.unlink()
