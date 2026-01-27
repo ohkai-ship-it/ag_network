@@ -6,8 +6,6 @@ They use temp directories and deterministic inputs to ensure reproducibility.
 
 import json
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Generator
 
 import pytest
 from typer.testing import CliRunner
@@ -19,29 +17,6 @@ from agnetwork.cli import app
 def runner() -> CliRunner:
     """Provide a CLI test runner."""
     return CliRunner()
-
-
-@pytest.fixture
-def temp_runs_dir() -> Generator[Path, None, None]:
-    """Provide a temporary runs directory and patch config."""
-    import logging
-
-    import agnetwork.config
-
-    original_runs_dir = agnetwork.config.config.runs_dir
-
-    with TemporaryDirectory() as tmpdir:
-        temp_path = Path(tmpdir)
-        agnetwork.config.config.runs_dir = temp_path
-        yield temp_path
-        agnetwork.config.config.runs_dir = original_runs_dir
-        # Close all loggers to release file handles (needed on Windows)
-        for logger_name in list(logging.Logger.manager.loggerDict):
-            if logger_name.startswith("agnetwork."):
-                logger = logging.getLogger(logger_name)
-                for handler in logger.handlers[:]:
-                    handler.close()
-                    logger.removeHandler(handler)
 
 
 def get_latest_run(runs_dir: Path) -> Path:
@@ -76,7 +51,7 @@ def validate_artifact_structure(json_path: Path, required_keys: set) -> dict:
 class TestGoldenResearch:
     """Golden tests for the research command."""
 
-    def test_research_creates_run_folder(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_research_creates_run_folder(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that research command creates proper run folder structure."""
         result = runner.invoke(
             app,
@@ -94,14 +69,14 @@ class TestGoldenResearch:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
 
         # Verify folder structure
         assert (run_dir / "sources").is_dir()
         assert (run_dir / "artifacts").is_dir()
         assert (run_dir / "logs").is_dir()
 
-    def test_research_creates_artifacts(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_research_creates_artifacts(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that research command creates expected artifacts."""
         result = runner.invoke(
             app,
@@ -117,7 +92,7 @@ class TestGoldenResearch:
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         artifacts_dir = run_dir / "artifacts"
 
         # Check both MD and JSON exist
@@ -133,7 +108,7 @@ class TestGoldenResearch:
         assert data["company"] == "TestCorp"
         assert data["meta"]["skill_name"] == "research_brief"
 
-    def test_research_creates_logs(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_research_creates_logs(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that research command creates proper log files."""
         result = runner.invoke(
             app,
@@ -142,7 +117,7 @@ class TestGoldenResearch:
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         logs_dir = run_dir / "logs"
 
         # Check status file
@@ -163,13 +138,13 @@ class TestGoldenResearch:
 class TestGoldenTargets:
     """Golden tests for the targets command."""
 
-    def test_targets_creates_artifacts(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_targets_creates_artifacts(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that targets command creates expected artifacts."""
         result = runner.invoke(app, ["targets", "TestCorp"])
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         artifacts_dir = run_dir / "artifacts"
 
         assert (artifacts_dir / "target_map.md").exists()
@@ -187,7 +162,7 @@ class TestGoldenTargets:
 class TestGoldenOutreach:
     """Golden tests for the outreach command."""
 
-    def test_outreach_creates_artifacts(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_outreach_creates_artifacts(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that outreach command creates expected artifacts."""
         result = runner.invoke(
             app,
@@ -196,7 +171,7 @@ class TestGoldenOutreach:
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         artifacts_dir = run_dir / "artifacts"
 
         assert (artifacts_dir / "outreach.md").exists()
@@ -214,7 +189,7 @@ class TestGoldenOutreach:
 class TestGoldenPrep:
     """Golden tests for the prep command."""
 
-    def test_prep_creates_artifacts(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_prep_creates_artifacts(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that prep command creates expected artifacts."""
         result = runner.invoke(
             app,
@@ -223,7 +198,7 @@ class TestGoldenPrep:
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         artifacts_dir = run_dir / "artifacts"
 
         assert (artifacts_dir / "meeting_prep.md").exists()
@@ -241,7 +216,7 @@ class TestGoldenPrep:
 class TestGoldenFollowup:
     """Golden tests for the followup command."""
 
-    def test_followup_creates_artifacts(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_followup_creates_artifacts(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that followup command creates expected artifacts."""
         result = runner.invoke(
             app,
@@ -250,7 +225,7 @@ class TestGoldenFollowup:
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         artifacts_dir = run_dir / "artifacts"
 
         assert (artifacts_dir / "followup.md").exists()

@@ -187,14 +187,16 @@ class KernelExecutor:
         result.mode = self.mode
         result.memory_enabled = memory_enabled
 
-        # Create run manager
+        # Create run manager with workspace context if provided
         task_spec = plan.task_spec
         command = (
             "pipeline"
             if task_spec.task_type.value == "pipeline"
             else task_spec.task_type.value
         )
-        run = RunManager(command=command, slug=task_spec.get_slug())
+        # M7.1: Pass workspace context to RunManager for scoped runs
+        workspace_ctx = getattr(task_spec, 'workspace_context', None)
+        run = RunManager(command=command, slug=task_spec.get_slug(), workspace=workspace_ctx)
         result.run_id = run.run_id
 
         # Save inputs

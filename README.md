@@ -68,7 +68,7 @@ ag_network/
 │   ├── tools/ingest.py            ← Source ingestion
 │   └── skills/                    ← Skill implementations
 │
-├── tests/                         ← Tests (116 passing)
+├── tests/                         ← Tests (437+ passing)
 └── runs/                          ← Execution artifacts
 ```
 
@@ -76,7 +76,8 @@ ag_network/
 
 ## Features
 
-✅ **8 CLI Commands**: research, targets, outreach, prep, followup, status, validate-run, run-pipeline  
+✅ **19 CLI Commands**: BD pipeline, Work Ops, Personal Ops, memory, CRM, workspace, prefs  
+✅ **Global --workspace**: Scope any command to a specific workspace  
 ✅ **Execution Modes**: Manual (deterministic) or LLM (AI-assisted)  
 ✅ **LLM Integration**: Anthropic Claude, OpenAI GPT, Fake adapter for testing  
 ✅ **Structured Output**: Pydantic validation + repair loop  
@@ -84,12 +85,21 @@ ag_network/
 ✅ **Artifacts**: Markdown + JSON outputs with version metadata  
 ✅ **Logging**: JSONL worklog + JSON status tracking  
 ✅ **Database**: SQLite for sources & traceability  
+✅ **Workspace Isolation**: Per-workspace database, runs, and preferences  
 ✅ **CI Pipeline**: GitHub Actions for ruff + pytest  
-✅ **Tests**: 116 passing, 0 lint errors
+✅ **Tests**: 437+ passing, 0 lint errors
 
 ---
 
 ## CLI Commands
+
+### Global Options
+
+| Option | Description |
+|--------|-------------|
+| `--workspace, -w <name>` | Run command in a specific workspace context |
+
+### BD Pipeline Commands
 
 | Command | Description |
 |---------|-------------|
@@ -98,9 +108,47 @@ ag_network/
 | `ag outreach <company>` | Draft outreach messages |
 | `ag prep <company>` | Prepare meeting pack |
 | `ag followup <company>` | Create post-meeting follow-up |
+| `ag run-pipeline <company>` | Run full BD pipeline (supports `--mode llm`) |
+
+### Work Ops Commands
+
+| Command | Description |
+|---------|-------------|
+| `ag meeting-summary` | Generate meeting summary from notes |
+| `ag status-update` | Generate weekly status update |
+| `ag decision-log` | Generate ADR-style decision record |
+
+### Personal Ops Commands
+
+| Command | Description |
+|---------|-------------|
+| `ag weekly-plan` | Generate weekly plan with goals |
+| `ag errand-list` | Generate organized errand list |
+| `ag travel-outline` | Generate travel itinerary |
+
+### Workspace Commands
+
+| Command | Description |
+|---------|-------------|
+| `ag workspace create <name>` | Create new isolated workspace |
+| `ag workspace list` | List all registered workspaces |
+| `ag workspace show [name]` | Show workspace details |
+| `ag workspace set-default <name>` | Set default workspace |
+| `ag workspace doctor [name]` | Run health checks |
+
+### Other Commands
+
+| Command | Description |
+|---------|-------------|
 | `ag status` | Show recent runs |
 | `ag validate-run <path>` | Validate run folder integrity |
-| `ag run-pipeline <company>` | Run full BD pipeline (supports `--mode llm`) |
+| `ag memory search <query>` | Search sources/artifacts |
+| `ag memory rebuild-index` | Rebuild FTS5 indexes |
+| `ag crm export-run <run_id>` | Export run as CRM package |
+| `ag crm list <entities>` | List CRM entities |
+| `ag sequence plan <run_id>` | Generate outreach sequence |
+| `ag prefs show` | Show workspace preferences |
+| `ag prefs set <key> <value>` | Set preference |
 
 ---
 
@@ -277,29 +325,39 @@ ag workspace doctor work
 
 ```bash
 # Meeting summaries
-ag meeting-summary --topic "Q1 Planning" --notes "notes.txt"
+ag meeting-summary --topic "Q1 Planning" --notes "- Discussed budget..."
 
 # Status updates
-ag status-update --accomplishments "Completed M7"
+ag status-update --accomplishment "Completed M7" --in-progress "Testing"
 
 # Decision logs (ADR-style)
-ag decision-log --title "Architecture Decision" --context "..."
+ag decision-log --title "Use PostgreSQL" --context "Need a database" --decision "PostgreSQL"
 ```
 
 ### Personal Ops Skills
 
 ```bash
-# Switch to personal workspace
-ag workspace set-default personal
-
 # Weekly planning
-ag weekly-plan --goals "Exercise 3x" --goals "Read book"
+ag weekly-plan --goal "Exercise 3x" --goal "Read book" --monday "Team standup"
 
 # Errand lists
-ag errand-list --errands "Grocery store" --errands "Post office"
+ag errand-list --errand "Grocery store" --errand "Post office"
 
 # Travel planning
-ag travel-outline --destination "Paris" --dates "Feb 10-17"
+ag travel-outline --destination "Paris" --start 2026-02-10 --end 2026-02-17
+```
+
+### Using --workspace Flag
+
+```bash
+# Run BD command in a specific workspace
+ag --workspace work research "TechCorp" --snapshot "AI startup"
+
+# Search memory in a specific workspace
+ag --workspace work memory search "machine learning"
+
+# Create artifacts in personal workspace
+ag --workspace personal weekly-plan --goal "Exercise"
 ```
 
 ### Workspace Isolation

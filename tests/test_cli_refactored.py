@@ -8,14 +8,11 @@ Verifies that:
 
 import json
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
 from typer.testing import CliRunner
 
-import agnetwork.config
 from agnetwork.cli import (
     _render_accounts_list,
     _render_activities_list,
@@ -32,34 +29,13 @@ def runner() -> CliRunner:
     return CliRunner()
 
 
-@pytest.fixture
-def temp_runs_dir() -> Generator[Path, None, None]:
-    """Provide a temporary runs directory and patch config."""
-    import logging
-
-    original_runs_dir = agnetwork.config.config.runs_dir
-
-    with TemporaryDirectory() as tmpdir:
-        temp_path = Path(tmpdir)
-        agnetwork.config.config.runs_dir = temp_path
-        yield temp_path
-        agnetwork.config.config.runs_dir = original_runs_dir
-        # Close all loggers to release file handles (needed on Windows)
-        for logger_name in list(logging.Logger.manager.loggerDict):
-            if logger_name.startswith("agnetwork."):
-                logger = logging.getLogger(logger_name)
-                for handler in logger.handlers[:]:
-                    handler.close()
-                    logger.removeHandler(handler)
-
-
 class TestTimezoneImport:
     """Tests verifying timezone import fix (F821)."""
 
-    def test_sequence_plan_command_parses_dates(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_sequence_plan_command_parses_dates(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """sequence plan command can parse dates without NameError."""
         # First create a run with outreach artifact
-        run_dir = temp_runs_dir / "20260127_test__testcompany__pipeline"
+        run_dir = temp_workspace_runs_dir / "20260127_test__testcompany__pipeline"
         run_dir.mkdir(parents=True)
         (run_dir / "artifacts").mkdir()
 
@@ -226,7 +202,7 @@ class TestCrmListCommand:
 class TestPipelineEndToEnd:
     """End-to-end tests for refactored pipeline."""
 
-    def test_pipeline_runs_successfully(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_pipeline_runs_successfully(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Pipeline command runs successfully with refactored helpers."""
         result = runner.invoke(
             app,
@@ -245,11 +221,11 @@ class TestPipelineEndToEnd:
         assert "Pipeline completed successfully" in result.output
 
         # Verify artifacts created
-        run_dir = list(temp_runs_dir.glob("*"))[0]
+        run_dir = list(temp_workspace_runs_dir.glob("*"))[0]
         assert (run_dir / "artifacts" / "research_brief.json").exists()
         assert (run_dir / "artifacts" / "outreach.json").exists()
 
-    def test_pipeline_invalid_mode_fails(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_pipeline_invalid_mode_fails(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Pipeline with invalid mode fails gracefully."""
         result = runner.invoke(
             app,

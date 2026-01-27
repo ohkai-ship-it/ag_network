@@ -4,7 +4,6 @@ Generates travel itinerary outlines.
 """
 
 import json
-from datetime import datetime, timezone
 from typing import Any, Dict
 
 from jinja2 import Template

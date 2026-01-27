@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
 
 import typer
-from typer import Typer
+from typer import Context, Typer
 
 import agnetwork.skills  # noqa: F401, I001 - Import skills to register them
 from agnetwork.config import config
@@ -18,6 +18,7 @@ from agnetwork.tools.ingest import SourceIngestor
 if TYPE_CHECKING:
     from agnetwork.kernel import ExecutionMode, PipelineResult
     from agnetwork.tools.llm import LLMFactory
+    from agnetwork.workspaces.context import WorkspaceContext
 
 # Initialize Typer app
 app = Typer(
@@ -26,14 +27,109 @@ app = Typer(
 )
 
 
+# =============================================================================
+# Global Context Object for Workspace Resolution
+# =============================================================================
+
+
+class CLIState:
+    """Shared state object for CLI commands.
+
+    Holds the resolved workspace context when --workspace is used.
+    """
+
+    def __init__(self):
+        self.workspace_context: Optional["WorkspaceContext"] = None
+        self.workspace_name: Optional[str] = None
+
+
+def resolve_workspace(name: Optional[str]) -> "WorkspaceContext":
+    """Resolve workspace by name, or return default.
+
+    Args:
+        name: Workspace name, or None for default.
+
+    Returns:
+        WorkspaceContext for the resolved workspace.
+
+    Raises:
+        typer.Exit: If workspace not found.
+    """
+    from agnetwork.workspaces import WorkspaceRegistry
+
+    registry = WorkspaceRegistry()
+
+    if name is None:
+        # Use default workspace (or create "default" if none exists)
+        try:
+            return registry.get_or_create_default()
+        except Exception as e:
+            typer.echo(f"❌ Error loading default workspace: {e}", err=True)
+            raise typer.Exit(1)
+
+    # Explicit workspace name provided
+    if not registry.workspace_exists(name):
+        typer.echo(f"❌ Workspace not found: {name}", err=True)
+        typer.echo("   Use 'ag workspace list' to see available workspaces.")
+        raise typer.Exit(1)
+
+    try:
+        return registry.load_workspace(name)
+    except Exception as e:
+        typer.echo(f"❌ Error loading workspace '{name}': {e}", err=True)
+        raise typer.Exit(1)
+
+
+def get_workspace_context(ctx: Context) -> "WorkspaceContext":
+    """Get workspace context from Typer context.
+
+    The workspace is always resolved by the app callback (init_app),
+    so this should never return None in normal CLI usage.
+
+    Args:
+        ctx: Typer context object.
+
+    Returns:
+        WorkspaceContext (never None in normal usage).
+
+    Raises:
+        RuntimeError: If called before init_app callback.
+    """
+    if ctx.obj is not None and ctx.obj.workspace_context is not None:
+        return ctx.obj.workspace_context
+    # This shouldn't happen in normal CLI usage since init_app always sets it
+    raise RuntimeError("Workspace context not initialized - this is a bug")
+
+
 @app.callback()
-def init_app():
-    """Initialize the application."""
+def init_app(
+    ctx: Context,
+    workspace: Optional[str] = typer.Option(
+        None,
+        "--workspace",
+        "-w",
+        help="Use a specific workspace (default: configured default workspace)",
+        envvar="AG_WORKSPACE",
+    ),
+):
+    """Initialize the application with optional workspace selection.
+
+    Use --workspace to run commands in a specific workspace context.
+    All runs, artifacts, and database operations will be scoped to that workspace.
+    """
     config.ensure_directories()
+
+    # Initialize CLI state object
+    ctx.ensure_object(CLIState)
+
+    # Always resolve workspace - either explicit or default
+    ctx.obj.workspace_name = workspace
+    ctx.obj.workspace_context = resolve_workspace(workspace)
 
 
 @app.command()
 def research(
+    ctx: Context,
     company: str = typer.Argument(..., help="Company name to research"),
     snapshot: str = typer.Option(
         ..., "--snapshot", "-s", help="Company snapshot/description"
@@ -58,11 +154,17 @@ def research(
     ),
 ):
     """Research a company and generate account research brief."""
-    typer.echo(f"🔍 Researching {company}...")
+    ws_ctx = get_workspace_context(ctx)
 
-    # Create run manager
-    run = RunManager(command="research", slug=company.lower().replace(" ", "_"))
+    typer.echo(f"🔍 Researching {company}...")
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+
+    # Create run manager with workspace context
+    run = RunManager(command="research", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
     typer.echo(f"📁 Run folder: {run.run_dir}")
+
+    # Get workspace-scoped database
+    db_path = ws_ctx.db_path
 
     try:
         # Log start
@@ -84,7 +186,7 @@ def research(
             from agnetwork.tools.web import SourceCapture
 
             capture = SourceCapture(run.run_dir / "sources")
-            db = SQLiteManager()
+            db = SQLiteManager(db_path=db_path)
 
             for url in urls:
                 typer.echo(f"   Fetching: {url[:60]}...")
@@ -209,14 +311,17 @@ def research(
 
 @app.command()
 def targets(
+    ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
     persona: Optional[str] = typer.Option(
         None, "--persona", "-p", help="Target persona"
     ),
 ):
     """Generate prospect target map for a company."""
+    ws_ctx = get_workspace_context(ctx)
     typer.echo(f"🎯 Creating target map for {company}...")
-    run = RunManager(command="targets", slug=company.lower().replace(" ", "_"))
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+    run = RunManager(command="targets", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
     run.log_action(
         phase="1",
@@ -244,6 +349,7 @@ def targets(
 
 @app.command()
 def outreach(
+    ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
     persona: str = typer.Option(..., "--persona", "-p", help="Target persona"),
     channel: str = typer.Option(
@@ -251,8 +357,10 @@ def outreach(
     ),
 ):
     """Generate outreach message drafts."""
+    ws_ctx = get_workspace_context(ctx)
     typer.echo(f"📧 Creating outreach for {company} ({persona}) via {channel}...")
-    run = RunManager(command="outreach", slug=company.lower().replace(" ", "_"))
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+    run = RunManager(command="outreach", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
     run.log_action(
         phase="1",
@@ -284,14 +392,17 @@ def outreach(
 
 @app.command()
 def prep(
+    ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
     meeting_type: str = typer.Option(
         "discovery", "--type", "-t", help="Meeting type: discovery, demo, negotiation"
     ),
 ):
     """Generate meeting preparation pack."""
+    ws_ctx = get_workspace_context(ctx)
     typer.echo(f"📋 Preparing for {meeting_type} meeting with {company}...")
-    run = RunManager(command="prep", slug=company.lower().replace(" ", "_"))
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+    run = RunManager(command="prep", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
     run.log_action(
         phase="1",
@@ -318,14 +429,17 @@ def prep(
 
 @app.command()
 def followup(
+    ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
     notes: str = typer.Option(
         ..., "--notes", "-n", help="Meeting notes or file path"
     ),
 ):
     """Generate post-meeting follow-up."""
+    ws_ctx = get_workspace_context(ctx)
     typer.echo(f"📝 Creating follow-up for {company}...")
-    run = RunManager(command="followup", slug=company.lower().replace(" ", "_"))
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+    run = RunManager(command="followup", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
     run.log_action(
         phase="1",
@@ -452,12 +566,14 @@ def _setup_llm_factory(exec_mode: "ExecutionMode") -> Optional["LLMFactory"]:
 def _fetch_urls_for_pipeline(
     urls: List[str],
     company: str,
+    ws_ctx: "WorkspaceContext",
 ) -> List[str]:
     """Fetch URLs and store them for pipeline use.
 
     Args:
         urls: List of URLs to fetch
         company: Company name for run slug
+        ws_ctx: Workspace context for scoped storage
 
     Returns:
         List of captured source IDs
@@ -468,9 +584,9 @@ def _fetch_urls_for_pipeline(
 
     typer.echo(f"🌐 Fetching {len(urls)} URLs...")
 
-    temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"))
+    temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
     capture = SourceCapture(temp_run.run_dir / "sources")
-    db = SQLiteManager()
+    db = SQLiteManager(db_path=ws_ctx.db_path)
 
     captured_source_ids = []
     for url in urls:
@@ -536,6 +652,7 @@ def _print_pipeline_result(
 
 @app.command(name="run-pipeline")
 def run_pipeline(
+    ctx: Context,
     company: str = typer.Argument(..., help="Company name to run pipeline for"),
     snapshot: str = typer.Option(
         "", "--snapshot", "-s", help="Company snapshot/description"
@@ -594,16 +711,19 @@ def run_pipeline(
     from agnetwork.eval.verifier import Verifier
     from agnetwork.kernel import KernelExecutor, TaskSpec, TaskType
 
+    ws_ctx = get_workspace_context(ctx)
+
     # Resolve execution mode and LLM factory
     exec_mode = _resolve_execution_mode(mode)
     llm_factory = _setup_llm_factory(exec_mode)
 
     typer.echo(f"🚀 Running full BD pipeline for {company}...")
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
 
     # Fetch URLs if provided
     captured_source_ids: List[str] = []
     if urls:
-        captured_source_ids = _fetch_urls_for_pipeline(urls, company)
+        captured_source_ids = _fetch_urls_for_pipeline(urls, company, ws_ctx)
         if captured_source_ids and not use_memory:
             use_memory = True
             typer.echo("🧠 Memory retrieval auto-enabled (URLs provided)")
@@ -626,6 +746,7 @@ def run_pipeline(
             "notes": notes,
             "source_ids": captured_source_ids,
         },
+        workspace_context=ws_ctx,  # M7.1: Pass workspace context for scoped runs
     )
 
     verifier = Verifier() if verify else None
@@ -648,17 +769,27 @@ memory_app = Typer(help="Memory management commands (M5)")
 app.add_typer(memory_app, name="memory")
 
 
+@memory_app.callback()
+def memory_callback():
+    """Memory management subcommands."""
+    pass
+
+
 @memory_app.command(name="rebuild-index")
-def memory_rebuild_index():
+def memory_rebuild_index(
+    ctx: Context,
+):
     """Rebuild FTS5 search indexes from base tables.
 
     Use this if FTS indexes get out of sync with sources/artifacts tables.
     """
     from agnetwork.storage.sqlite import SQLiteManager
 
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
     typer.echo("🔧 Rebuilding FTS5 indexes...")
 
-    db = SQLiteManager()
+    db = SQLiteManager(db_path=ws_ctx.db_path)
     db.rebuild_fts_index()
 
     typer.echo("✅ FTS5 indexes rebuilt successfully!")
@@ -666,6 +797,7 @@ def memory_rebuild_index():
 
 @memory_app.command(name="search")
 def memory_search(
+    ctx: Context,
     query: str = typer.Argument(..., help="Search query"),
     sources_only: bool = typer.Option(False, "--sources", "-s", help="Search sources only"),
     artifacts_only: bool = typer.Option(False, "--artifacts", "-a", help="Search artifacts only"),
@@ -680,7 +812,10 @@ def memory_search(
     """
     from agnetwork.storage.sqlite import SQLiteManager
 
-    db = SQLiteManager()
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+
+    db = SQLiteManager(db_path=ws_ctx.db_path)
 
     if not artifacts_only:
         typer.echo("\n📚 Sources:")
@@ -1243,8 +1378,8 @@ def workspace_create(
         ag workspace create myproject
         ag workspace create work --root ~/work/agdata --set-default
     """
-    from agnetwork.workspaces import WorkspaceRegistry
     from agnetwork.storage.sqlite import SQLiteManager
+    from agnetwork.workspaces import WorkspaceRegistry
 
     try:
         registry = WorkspaceRegistry()
@@ -1263,10 +1398,10 @@ def workspace_create(
         # Initialize database with workspace_meta
         db = SQLiteManager(db_path=context.db_path)
         db.init_workspace_metadata(context.workspace_id)
-        typer.echo(f"   ✓ Database initialized")
+        typer.echo("   ✓ Database initialized")
 
         if set_default:
-            typer.echo(f"   ✓ Set as default workspace")
+            typer.echo("   ✓ Set as default workspace")
 
     except ValueError as e:
         typer.echo(f"❌ Error: {e}", err=True)
@@ -1326,11 +1461,11 @@ def workspace_show(
         typer.echo(f"   ID: {info['workspace_id']}")
         typer.echo(f"   Root: {info['root_dir']}")
         typer.echo(f"   Default: {info['is_default']}")
-        typer.echo(f"\n📂 Paths:")
+        typer.echo("\n📂 Paths:")
         for path_name, path_val in info['paths'].items():
             exists = "✓" if info['paths_exist'].get(path_name.replace('_dir', '') if path_name.endswith('_dir') else path_name, False) else "✗"
             typer.echo(f"   {exists} {path_name}: {path_val}")
-        typer.echo(f"\n🔒 Policy:")
+        typer.echo("\n🔒 Policy:")
         for key, val in info['policy'].items():
             typer.echo(f"   {key}: {val}")
 
@@ -1362,6 +1497,70 @@ def workspace_set_default(
         raise typer.Exit(1)
 
 
+def _doctor_collect(context) -> list[tuple[str, str, bool, str]]:
+    """Collect health check results for a workspace.
+
+    Returns list of (category, label, ok, detail) tuples.
+    """
+    from agnetwork.storage.sqlite import SQLiteManager
+
+    checks: list[tuple[str, str, bool, str]] = []
+
+    # Directory checks
+    path_checks = context.verify_paths()
+    for path_name, exists in path_checks.items():
+        checks.append(("📂 Directory", path_name, exists, ""))
+
+    # Database checks
+    if context.db_path.exists():
+        checks.append(("💾 Database", "Database file exists", True, ""))
+        try:
+            db = SQLiteManager(db_path=context.db_path)
+            ws_id = db.get_workspace_id()
+            if ws_id == context.workspace_id:
+                checks.append(("💾 Database", "Workspace ID matches", True, ""))
+            else:
+                checks.append(("💾 Database", "Workspace ID mismatch", False, f"expected {context.workspace_id}, got {ws_id}"))
+        except Exception as e:
+            checks.append(("💾 Database", "Database error", False, str(e)))
+    else:
+        checks.append(("💾 Database", "Database file missing", False, ""))
+
+    # Manifest checks
+    manifest_path = context.root_dir / "workspace.toml"
+    checks.append(("📄 Manifest", "Manifest exists", manifest_path.exists(), ""))
+
+    return checks
+
+
+def _doctor_print(name: str, checks: list[tuple[str, str, bool, str]]) -> bool:
+    """Print doctor check results and return True if all passed."""
+    typer.echo(f"🔍 Checking workspace: {name}\n")
+
+    current_category = None
+    all_ok = True
+
+    for category, label, ok, detail in checks:
+        if category != current_category:
+            if current_category is not None:
+                typer.echo("")
+            typer.echo(f"{category} checks:")
+            current_category = category
+
+        status = "✓" if ok else "✗"
+        detail_str = f": {detail}" if detail else ""
+        typer.echo(f"   {status} {label}{detail_str}")
+        if not ok:
+            all_ok = False
+
+    if all_ok:
+        typer.echo("\n✅ All checks passed")
+    else:
+        typer.echo("\n⚠️ Some checks failed")
+
+    return all_ok
+
+
 @workspace_app.command(name="doctor")
 def workspace_doctor(
     name: Optional[str] = typer.Argument(None, help="Workspace name (default: current default)")
@@ -1373,7 +1572,6 @@ def workspace_doctor(
         ag workspace doctor  # checks default workspace
     """
     from agnetwork.workspaces import WorkspaceRegistry
-    from agnetwork.storage.sqlite import SQLiteManager
 
     try:
         registry = WorkspaceRegistry()
@@ -1385,50 +1583,10 @@ def workspace_doctor(
                 raise typer.Exit(1)
 
         context = registry.load_workspace(name)
-        typer.echo(f"🔍 Checking workspace: {name}\n")
+        checks = _doctor_collect(context)
+        all_ok = _doctor_print(name, checks)
 
-        # Check paths
-        typer.echo("📂 Directory checks:")
-        path_checks = context.verify_paths()
-        all_ok = True
-        for path_name, exists in path_checks.items():
-            status = "✓" if exists else "✗"
-            typer.echo(f"   {status} {path_name}")
-            if not exists:
-                all_ok = False
-
-        # Check database
-        typer.echo("\n💾 Database checks:")
-        if context.db_path.exists():
-            typer.echo(f"   ✓ Database file exists")
-            try:
-                db = SQLiteManager(db_path=context.db_path)
-                ws_id = db.get_workspace_id()
-                if ws_id == context.workspace_id:
-                    typer.echo(f"   ✓ Workspace ID matches")
-                else:
-                    typer.echo(f"   ✗ Workspace ID mismatch: expected {context.workspace_id}, got {ws_id}")
-                    all_ok = False
-            except Exception as e:
-                typer.echo(f"   ✗ Database error: {e}")
-                all_ok = False
-        else:
-            typer.echo(f"   ✗ Database file missing")
-            all_ok = False
-
-        # Check manifest
-        typer.echo("\n📄 Manifest checks:")
-        manifest_path = context.root_dir / "workspace.toml"
-        if manifest_path.exists():
-            typer.echo(f"   ✓ Manifest exists")
-        else:
-            typer.echo(f"   ✗ Manifest missing")
-            all_ok = False
-
-        if all_ok:
-            typer.echo("\n✅ All checks passed")
-        else:
-            typer.echo("\n⚠️ Some checks failed")
+        if not all_ok:
             raise typer.Exit(1)
 
     except FileNotFoundError as e:
@@ -1573,6 +1731,466 @@ def prefs_reset(
     except Exception as e:
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
+
+
+# ============================================================================
+# Work Ops Skill Commands (M7.1)
+# ============================================================================
+
+
+def _finalize_skill_run(run, result) -> None:
+    """Persist artifacts and run verification on a skill result.
+
+    Args:
+        run: RunManager instance
+        result: SkillResult from skill execution
+    """
+    from agnetwork.eval.verifier import Verifier
+
+    # Write artifacts
+    for artifact in result.artifacts:
+        artifact_path = run.run_dir / "artifacts" / artifact.filename
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(artifact_path, "w", encoding="utf-8") as f:
+            f.write(artifact.content)
+        typer.echo(f"   📄 {artifact.filename}")
+
+    # Run verifier
+    verifier = Verifier()
+    issues = verifier.verify_skill_result(result)
+    if issues:
+        typer.echo("⚠️ Verification issues:")
+        for issue in issues:
+            typer.echo(f"   - [{issue.severity}] {issue.message}")
+
+
+def _run_skill_command(
+    ctx: Context,
+    skill_name: str,
+    inputs: dict,
+    command_name: str,
+    slug: str,
+) -> None:
+    """Execute a skill through the kernel and save artifacts.
+
+    Args:
+        ctx: Typer context
+        skill_name: Name of the registered skill
+        inputs: Input dictionary for the skill
+        command_name: Command name for the run folder
+        slug: Slug for the run folder
+    """
+    from agnetwork.kernel import SkillContext, skill_registry
+
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
+
+    # Create run manager
+    run = RunManager(command=command_name, slug=slug, workspace=ws_ctx)
+    typer.echo(f"📁 Run folder: {run.run_dir}")
+
+    # Get skill instance
+    skill = skill_registry.get(skill_name)
+    if skill is None:
+        typer.echo(f"❌ Skill not found: {skill_name}", err=True)
+        raise typer.Exit(1)
+
+    # Create skill context
+    skill_ctx = SkillContext(
+        run_id=run.run_id,
+        workspace=ws_ctx.name,
+    )
+
+    try:
+        result = skill.run(inputs, skill_ctx)
+
+        if result.has_errors():
+            typer.echo("❌ Skill execution failed", err=True)
+            for warning in result.warnings:
+                typer.echo(f"   ⚠️ {warning}")
+            raise typer.Exit(1)
+
+        _finalize_skill_run(run, result)
+        typer.echo("✅ Done!")
+
+    except Exception as e:
+        typer.echo(f"❌ Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command(name="meeting-summary")
+def meeting_summary(
+    ctx: Context,
+    topic: str = typer.Option(..., "--topic", "-t", help="Meeting topic"),
+    notes: str = typer.Option(
+        ..., "--notes", "-n", help="Meeting notes (text or file path)"
+    ),
+    date: Optional[str] = typer.Option(
+        None, "--date", "-d", help="Meeting date (YYYY-MM-DD, defaults to today)"
+    ),
+    attendees: str = typer.Option(
+        "N/A", "--attendees", "-a", help="Comma-separated list of attendees"
+    ),
+):
+    """Generate a meeting summary from notes.
+
+    Examples:
+        ag meeting-summary --topic "Q1 Planning" --notes "- Discussed budget..."
+        ag meeting-summary --topic "Standup" --notes notes.txt --attendees "Alice, Bob"
+    """
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    typer.echo(f"📝 Creating meeting summary: {topic}")
+
+    # Handle notes as file or text
+    notes_path = Path(notes)
+    if notes_path.exists():
+        notes_content = notes_path.read_text(encoding="utf-8")
+        typer.echo(f"   📄 Loaded notes from: {notes_path}")
+    else:
+        notes_content = notes
+
+    # Set date
+    if date is None:
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    inputs = {
+        "topic": topic,
+        "notes": notes_content,
+        "date": date,
+        "attendees": attendees,
+    }
+
+    _run_skill_command(
+        ctx=ctx,
+        skill_name="meeting_summary",
+        inputs=inputs,
+        command_name="meeting_summary",
+        slug=topic.lower().replace(" ", "_")[:20],
+    )
+
+
+@app.command(name="status-update")
+def status_update(
+    ctx: Context,
+    accomplishments: Optional[List[str]] = typer.Option(
+        None, "--accomplishment", "-a", help="Accomplishment (can be repeated)"
+    ),
+    in_progress: Optional[List[str]] = typer.Option(
+        None, "--in-progress", "-i", help="In-progress item (can be repeated)"
+    ),
+    blockers: Optional[List[str]] = typer.Option(
+        None, "--blocker", "-b", help="Blocker (can be repeated)"
+    ),
+    next_week: Optional[List[str]] = typer.Option(
+        None, "--next", "-n", help="Next week priority (can be repeated)"
+    ),
+    period: str = typer.Option(
+        "This Week", "--period", "-p", help="Report period"
+    ),
+    author: str = typer.Option(
+        "Team Member", "--author", help="Report author"
+    ),
+):
+    """Generate a status update report.
+
+    Examples:
+        ag status-update --accomplishment "Completed M7" --in-progress "Testing"
+        ag status-update -a "Shipped feature" -a "Fixed bug" -n "Release prep"
+    """
+    from datetime import datetime, timezone
+
+    typer.echo(f"📊 Creating status update: {period}")
+
+    inputs = {
+        "period": period,
+        "author": author,
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "accomplishments": accomplishments or [],
+        "in_progress": in_progress or [],
+        "blockers": blockers or [],
+        "next_week": next_week or [],
+    }
+
+    _run_skill_command(
+        ctx=ctx,
+        skill_name="status_update",
+        inputs=inputs,
+        command_name="status_update",
+        slug=period.lower().replace(" ", "_")[:20],
+    )
+
+
+@app.command(name="decision-log")
+def decision_log(
+    ctx: Context,
+    title: str = typer.Option(..., "--title", "-t", help="Decision title"),
+    context_text: str = typer.Option(
+        ..., "--context", "-c", help="Context/background for the decision"
+    ),
+    decision: str = typer.Option(
+        ..., "--decision", "-d", help="The decision made"
+    ),
+    options: Optional[List[str]] = typer.Option(
+        None, "--option", "-o", help="Option considered (format: 'name: description')"
+    ),
+    consequences: Optional[List[str]] = typer.Option(
+        None, "--consequence", help="Consequence of the decision"
+    ),
+    decision_makers: str = typer.Option(
+        "Team", "--decision-makers", help="Who made the decision"
+    ),
+    status: str = typer.Option(
+        "Accepted", "--status", "-s", help="Status: Proposed, Accepted, Deprecated"
+    ),
+):
+    """Generate an ADR-style decision log.
+
+    Examples:
+        ag decision-log --title "Use PostgreSQL" --context "Need a database" \\
+            --decision "PostgreSQL for reliability" --option "PostgreSQL: Mature RDBMS"
+    """
+    from datetime import datetime, timezone
+
+    typer.echo(f"📋 Creating decision log: {title}")
+
+    # Parse options into structured format
+    parsed_options = []
+    for opt in (options or []):
+        if ": " in opt:
+            name, desc = opt.split(": ", 1)
+            parsed_options.append({
+                "name": name,
+                "description": desc,
+                "pros": [],
+                "cons": [],
+            })
+        else:
+            parsed_options.append({
+                "name": opt,
+                "description": "",
+                "pros": [],
+                "cons": [],
+            })
+
+    inputs = {
+        "title": title,
+        "context": context_text,
+        "decision": decision,
+        "options": parsed_options,
+        "consequences": consequences or [],
+        "decision_makers": decision_makers,
+        "status": status,
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+    }
+
+    _run_skill_command(
+        ctx=ctx,
+        skill_name="decision_log",
+        inputs=inputs,
+        command_name="decision_log",
+        slug=title.lower().replace(" ", "_")[:20],
+    )
+
+
+# ============================================================================
+# Personal Ops Skill Commands (M7.1)
+# ============================================================================
+
+
+@app.command(name="weekly-plan")
+def weekly_plan(
+    ctx: Context,
+    goals: Optional[List[str]] = typer.Option(
+        None, "--goal", "-g", help="Weekly goal (can be repeated)"
+    ),
+    monday: Optional[List[str]] = typer.Option(
+        None, "--monday", help="Monday task (can be repeated)"
+    ),
+    tuesday: Optional[List[str]] = typer.Option(
+        None, "--tuesday", help="Tuesday task (can be repeated)"
+    ),
+    wednesday: Optional[List[str]] = typer.Option(
+        None, "--wednesday", help="Wednesday task (can be repeated)"
+    ),
+    thursday: Optional[List[str]] = typer.Option(
+        None, "--thursday", help="Thursday task (can be repeated)"
+    ),
+    friday: Optional[List[str]] = typer.Option(
+        None, "--friday", help="Friday task (can be repeated)"
+    ),
+    notes: Optional[List[str]] = typer.Option(
+        None, "--note", "-n", help="Note/reminder (can be repeated)"
+    ),
+    week_of: Optional[str] = typer.Option(
+        None, "--week-of", "-w", help="Week start date (YYYY-MM-DD)"
+    ),
+):
+    """Generate a weekly plan.
+
+    Examples:
+        ag weekly-plan --goal "Exercise 3x" --goal "Complete project"
+        ag weekly-plan --monday "Team standup" --wednesday "Review meeting"
+    """
+    from datetime import datetime, timezone
+
+    typer.echo("📅 Creating weekly plan...")
+
+    if week_of is None:
+        week_of = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    daily_tasks = {}
+    if monday:
+        daily_tasks["Monday"] = monday
+    if tuesday:
+        daily_tasks["Tuesday"] = tuesday
+    if wednesday:
+        daily_tasks["Wednesday"] = wednesday
+    if thursday:
+        daily_tasks["Thursday"] = thursday
+    if friday:
+        daily_tasks["Friday"] = friday
+
+    inputs = {
+        "week_of": week_of,
+        "goals": goals or [],
+        "daily_tasks": daily_tasks,
+        "notes": notes or [],
+    }
+
+    _run_skill_command(
+        ctx=ctx,
+        skill_name="weekly_plan",
+        inputs=inputs,
+        command_name="weekly_plan",
+        slug=f"week_{week_of}",
+    )
+
+
+@app.command(name="errand-list")
+def errand_list(
+    ctx: Context,
+    errands: Optional[List[str]] = typer.Option(
+        None, "--errand", "-e", help="Errand (can be repeated)"
+    ),
+    locations: Optional[List[str]] = typer.Option(
+        None, "--location", "-l", help="Location for errands (format: 'location: task')"
+    ),
+    date: Optional[str] = typer.Option(
+        None, "--date", "-d", help="Date for errands (YYYY-MM-DD)"
+    ),
+):
+    """Generate an organized errand list.
+
+    Examples:
+        ag errand-list --errand "Buy groceries" --errand "Pick up dry cleaning"
+        ag errand-list --location "Grocery: Milk, Bread" --location "Post Office: Mail package"
+    """
+    from datetime import datetime, timezone
+
+    typer.echo("📋 Creating errand list...")
+
+    if date is None:
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Parse errands into structured format
+    parsed_errands = []
+
+    # Simple errands (no location)
+    for errand in (errands or []):
+        parsed_errands.append({
+            "task": errand,
+            "location": "General",
+            "priority": "normal",
+            "notes": None,
+        })
+
+    # Location-based errands
+    for loc in (locations or []):
+        if ": " in loc:
+            location, task = loc.split(": ", 1)
+            parsed_errands.append({
+                "task": task,
+                "location": location,
+                "priority": "normal",
+                "notes": None,
+            })
+        else:
+            parsed_errands.append({
+                "task": loc,
+                "location": "General",
+                "priority": "normal",
+                "notes": None,
+            })
+
+    inputs = {
+        "date": date,
+        "errands": parsed_errands,
+    }
+
+    _run_skill_command(
+        ctx=ctx,
+        skill_name="errand_list",
+        inputs=inputs,
+        command_name="errand_list",
+        slug=f"errands_{date}",
+    )
+
+
+@app.command(name="travel-outline")
+def travel_outline(
+    ctx: Context,
+    destination: str = typer.Option(..., "--destination", "-d", help="Travel destination"),
+    start_date: str = typer.Option(..., "--start", "-s", help="Start date (YYYY-MM-DD)"),
+    end_date: str = typer.Option(..., "--end", "-e", help="End date (YYYY-MM-DD)"),
+    accommodation: Optional[str] = typer.Option(
+        None, "--accommodation", "-a", help="Accommodation details"
+    ),
+    activities: Optional[List[str]] = typer.Option(
+        None, "--activity", help="Activity for itinerary (can be repeated)"
+    ),
+    packing: Optional[List[str]] = typer.Option(
+        None, "--packing", "-p", help="Packing list item (can be repeated)"
+    ),
+    notes: Optional[List[str]] = typer.Option(
+        None, "--note", "-n", help="Important note (can be repeated)"
+    ),
+):
+    """Generate a travel itinerary outline.
+
+    Examples:
+        ag travel-outline --destination Paris --start 2026-02-10 --end 2026-02-17
+        ag travel-outline -d "New York" -s 2026-03-01 -e 2026-03-05 --activity "Visit Times Square"
+    """
+    typer.echo(f"✈️ Creating travel outline: {destination}")
+
+    # Build simple itinerary
+    itinerary = []
+    if activities:
+        # Put all activities on day 1 for simplicity
+        itinerary.append({
+            "date": start_date,
+            "activities": activities,
+        })
+
+    inputs = {
+        "destination": destination,
+        "start_date": start_date,
+        "end_date": end_date,
+        "accommodation": accommodation or "",
+        "itinerary": itinerary,
+        "packing_list": packing or [],
+        "notes": notes or [],
+    }
+
+    _run_skill_command(
+        ctx=ctx,
+        skill_name="travel_outline",
+        inputs=inputs,
+        command_name="travel_outline",
+        slug=destination.lower().replace(" ", "_")[:20],
+    )
 
 
 if __name__ == "__main__":

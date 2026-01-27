@@ -8,9 +8,12 @@ This module defines the core models used by the kernel to:
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    pass
 
 
 class TaskType(str, Enum):
@@ -67,6 +70,12 @@ class TaskSpec(BaseModel):
     # Metadata
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     context: Dict[str, Any] = Field(default_factory=dict)  # Additional context
+
+    # M7.1: Optional workspace context for scoped runs
+    # Using Any to avoid circular import; actual type is WorkspaceContext
+    workspace_context: Optional[Any] = Field(default=None, exclude=True)
+
+    model_config = {"arbitrary_types_allowed": True}
 
     def get_company(self) -> Optional[str]:
         """Extract company name from inputs."""

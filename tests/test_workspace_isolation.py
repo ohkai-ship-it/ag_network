@@ -4,9 +4,6 @@ Tests that enforce workspace boundaries and prevent cross-workspace access.
 """
 
 import json
-import shutil
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -180,7 +177,7 @@ class TestWorkspaceIsolation:
 
         # Now try to access alpha DB with beta context
         db = SQLiteManager(db_path=alpha.db_path)
-        
+
         # This should fail
         with pytest.raises(WorkspaceMismatchError):
             db.verify_workspace_id(beta.workspace_id)

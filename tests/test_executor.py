@@ -1,15 +1,11 @@
 """Tests for the kernel executor and pipeline command."""
 
 import json
-import logging
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Generator
 
 import pytest
 from typer.testing import CliRunner
 
-import agnetwork.config
 from agnetwork.cli import app
 
 
@@ -17,25 +13,6 @@ from agnetwork.cli import app
 def runner() -> CliRunner:
     """Provide a CLI test runner."""
     return CliRunner()
-
-
-@pytest.fixture
-def temp_runs_dir() -> Generator[Path, None, None]:
-    """Provide a temporary runs directory and patch config."""
-    original_runs_dir = agnetwork.config.config.runs_dir
-
-    with TemporaryDirectory() as tmpdir:
-        temp_path = Path(tmpdir)
-        agnetwork.config.config.runs_dir = temp_path
-        yield temp_path
-        agnetwork.config.config.runs_dir = original_runs_dir
-        # Close all loggers to release file handles (needed on Windows)
-        for logger_name in list(logging.Logger.manager.loggerDict):
-            if logger_name.startswith("agnetwork."):
-                logger = logging.getLogger(logger_name)
-                for handler in logger.handlers[:]:
-                    handler.close()
-                    logger.removeHandler(handler)
 
 
 def get_latest_run(runs_dir: Path) -> Path:
@@ -48,7 +25,7 @@ def get_latest_run(runs_dir: Path) -> Path:
 class TestPipelineCommand:
     """Tests for the run-pipeline command."""
 
-    def test_pipeline_creates_all_artifacts(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_pipeline_creates_all_artifacts(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that pipeline creates all 5 BD artifacts."""
         result = runner.invoke(
             app,
@@ -66,7 +43,7 @@ class TestPipelineCommand:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         artifacts_dir = run_dir / "artifacts"
 
         # Check all 5 artifact pairs exist
@@ -97,13 +74,13 @@ class TestPipelineCommand:
             assert "skill_name" in data["meta"]
             assert "generated_at" in data["meta"]
 
-    def test_pipeline_creates_proper_logs(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_pipeline_creates_proper_logs(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that pipeline creates proper log files."""
         result = runner.invoke(app, ["run-pipeline", "TestCorp"])
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
         logs_dir = run_dir / "logs"
 
         # Check status file
@@ -127,19 +104,19 @@ class TestPipelineCommand:
         # Should have entries for plan start, each step, and completion
         assert any("plan" in e.get("phase", "") for e in entries)
 
-    def test_pipeline_run_folder_naming(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_pipeline_run_folder_naming(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test that pipeline run folder is named correctly."""
         result = runner.invoke(app, ["run-pipeline", "Test Corp Inc"])
 
         assert result.exit_code == 0
 
-        run_dir = get_latest_run(temp_runs_dir)
+        run_dir = get_latest_run(temp_workspace_runs_dir)
 
         # Should contain company slug and 'pipeline'
         assert "test_corp_inc" in run_dir.name
         assert "pipeline" in run_dir.name
 
-    def test_pipeline_with_no_verify(self, runner: CliRunner, temp_runs_dir: Path):
+    def test_pipeline_with_no_verify(self, runner: CliRunner, temp_workspace_runs_dir: Path):
         """Test pipeline with verification disabled."""
         result = runner.invoke(
             app,
@@ -152,7 +129,7 @@ class TestPipelineCommand:
 class TestExecutorWithVerification:
     """Tests for executor with verifier integration."""
 
-    def test_verifier_failure_marks_run_failed(self, temp_runs_dir: Path):
+    def test_verifier_failure_marks_run_failed(self, temp_config_runs_dir: Path):
         """Test that verification failure marks run as failed."""
         from agnetwork.eval.verifier import Verifier
         from agnetwork.kernel import (
@@ -219,7 +196,7 @@ class TestExecutorWithVerification:
             )
 
             # Check that run folder status shows failure
-            run_dir = get_latest_run(temp_runs_dir)
+            run_dir = get_latest_run(temp_config_runs_dir)
             status_path = run_dir / "logs" / "agent_status.json"
 
             with open(status_path) as f:

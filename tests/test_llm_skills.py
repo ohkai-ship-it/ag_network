@@ -1,15 +1,10 @@
 """Tests for LLM-mode skill execution."""
 
 import json
-import logging
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Generator
 
 import pytest
 from typer.testing import CliRunner
 
-import agnetwork.config
 from agnetwork.cli import app
 from agnetwork.kernel.contracts import SkillContext
 from agnetwork.kernel.llm_executor import LLMSkillError, LLMSkillExecutor
@@ -279,25 +274,7 @@ class TestCLILLMMode:
         """Provide a CLI test runner."""
         return CliRunner()
 
-    @pytest.fixture
-    def temp_runs_dir(self) -> Generator[Path, None, None]:
-        """Provide a temporary runs directory."""
-        original_runs_dir = agnetwork.config.config.runs_dir
-
-        with TemporaryDirectory() as tmpdir:
-            temp_path = Path(tmpdir)
-            agnetwork.config.config.runs_dir = temp_path
-            yield temp_path
-            agnetwork.config.config.runs_dir = original_runs_dir
-            # Close loggers
-            for logger_name in list(logging.Logger.manager.loggerDict):
-                if logger_name.startswith("agnetwork."):
-                    logger = logging.getLogger(logger_name)
-                    for handler in logger.handlers[:]:
-                        handler.close()
-                        logger.removeHandler(handler)
-
-    def test_manual_mode_default(self, runner, temp_runs_dir):
+    def test_manual_mode_default(self, runner, temp_workspace_runs_dir):
         """Test that manual mode is the default."""
         result = runner.invoke(
             app,
@@ -308,7 +285,7 @@ class TestCLILLMMode:
         assert result.exit_code == 0
         assert "manual" in result.output.lower() or "completed" in result.output.lower()
 
-    def test_invalid_mode_rejected(self, runner, temp_runs_dir):
+    def test_invalid_mode_rejected(self, runner, temp_workspace_runs_dir):
         """Test that invalid mode is rejected."""
         result = runner.invoke(
             app,
@@ -318,7 +295,7 @@ class TestCLILLMMode:
         assert result.exit_code == 1
         assert "invalid mode" in result.output.lower()
 
-    def test_llm_mode_requires_enabled(self, runner, temp_runs_dir):
+    def test_llm_mode_requires_enabled(self, runner, temp_workspace_runs_dir):
         """Test that LLM mode requires AG_LLM_ENABLED=1."""
         # Without setting AG_LLM_ENABLED
         result = runner.invoke(
@@ -338,23 +315,7 @@ class TestManualModeUnchanged:
     def runner(self) -> CliRunner:
         return CliRunner()
 
-    @pytest.fixture
-    def temp_runs_dir(self) -> Generator[Path, None, None]:
-        original_runs_dir = agnetwork.config.config.runs_dir
-
-        with TemporaryDirectory() as tmpdir:
-            temp_path = Path(tmpdir)
-            agnetwork.config.config.runs_dir = temp_path
-            yield temp_path
-            agnetwork.config.config.runs_dir = original_runs_dir
-            for logger_name in list(logging.Logger.manager.loggerDict):
-                if logger_name.startswith("agnetwork."):
-                    logger = logging.getLogger(logger_name)
-                    for handler in logger.handlers[:]:
-                        handler.close()
-                        logger.removeHandler(handler)
-
-    def test_pipeline_still_works_without_llm(self, runner, temp_runs_dir):
+    def test_pipeline_still_works_without_llm(self, runner, temp_workspace_runs_dir):
         """Test pipeline works with no LLM config at all."""
         result = runner.invoke(
             app,
@@ -370,13 +331,13 @@ class TestManualModeUnchanged:
         assert "completed" in result.output.lower()
 
         # Check artifacts were created
-        runs = list(temp_runs_dir.glob("*"))
+        runs = list(temp_workspace_runs_dir.glob("*"))
         assert len(runs) == 1
         artifacts_dir = runs[0] / "artifacts"
         assert (artifacts_dir / "research_brief.json").exists()
         assert (artifacts_dir / "target_map.json").exists()
 
-    def test_research_command_unchanged(self, runner, temp_runs_dir):
+    def test_research_command_unchanged(self, runner, temp_workspace_runs_dir):
         """Test standalone research command still works."""
         result = runner.invoke(
             app,

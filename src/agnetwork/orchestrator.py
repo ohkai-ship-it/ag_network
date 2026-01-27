@@ -4,7 +4,6 @@ import json
 import logging
 import logging.handlers
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from agnetwork.config import config
