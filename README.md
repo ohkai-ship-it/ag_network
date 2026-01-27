@@ -87,7 +87,7 @@ ag_network/
 ✅ **Database**: SQLite for sources & traceability  
 ✅ **Workspace Isolation**: Per-workspace database, runs, and preferences  
 ✅ **CI Pipeline**: GitHub Actions for ruff + pytest  
-✅ **Tests**: 437+ passing, 0 lint errors
+✅ **Tests**: 454+ passing, 0 lint errors
 
 ---
 
@@ -142,13 +142,40 @@ ag_network/
 |---------|-------------|
 | `ag status` | Show recent runs |
 | `ag validate-run <path>` | Validate run folder integrity |
-| `ag memory search <query>` | Search sources/artifacts |
+
+### Memory Commands
+
+| Command | Description |
+|---------|-------------|
+| `ag memory search <query>` | Search sources/artifacts using FTS5 |
 | `ag memory rebuild-index` | Rebuild FTS5 indexes |
+
+### CRM Commands
+
+| Command | Description |
+|---------|-------------|
 | `ag crm export-run <run_id>` | Export run as CRM package |
-| `ag crm list <entities>` | List CRM entities |
+| `ag crm export-latest` | Export most recent run |
+| `ag crm import <file>` | Import CRM data from CSV/JSON |
+| `ag crm list <entity>` | List CRM entities |
+| `ag crm search <query>` | Search CRM entities |
+| `ag crm stats` | Show CRM storage statistics |
+
+### Sequence Commands
+
+| Command | Description |
+|---------|-------------|
 | `ag sequence plan <run_id>` | Generate outreach sequence |
+| `ag sequence list-templates` | List available templates |
+| `ag sequence show-template <name>` | Show template details |
+
+### Preferences Commands
+
+| Command | Description |
+|---------|-------------|
 | `ag prefs show` | Show workspace preferences |
-| `ag prefs set <key> <value>` | Set preference |
+| `ag prefs set <key> <value>` | Set a preference |
+| `ag prefs reset` | Reset preferences to defaults |
 
 ---
 
