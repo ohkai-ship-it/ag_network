@@ -53,3 +53,6 @@ runs/
 
 # Project-specific
 .ruff_cache/
+
+# Dev docs (local only)
+docs/dev/
