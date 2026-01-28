@@ -131,7 +131,9 @@ class CRMAdapterFactory:
 
         Args:
             name: Adapter name
-            **kwargs: Additional arguments passed to adapter constructor
+            **kwargs: Additional arguments passed to adapter constructor.
+                For "file" adapter, if 'storage' is not provided,
+                one will be created using base_path or AG_CRM_PATH.
 
         Returns:
             CRMAdapter instance
@@ -139,6 +141,10 @@ class CRMAdapterFactory:
         Raises:
             ValueError: If adapter not found
         """
+        from pathlib import Path
+
+        from agnetwork.crm.storage import CRMStorage
+
         adapter_class = CRMAdapterRegistry.get(name)
 
         if adapter_class is None:
@@ -147,7 +153,21 @@ class CRMAdapterFactory:
                 f"Unknown CRM adapter: '{name}'. Available: {available}"
             )
 
-        return adapter_class(**kwargs)
+        # For file adapter, ensure storage is provided
+        if name.lower() == "file" and "storage" not in kwargs:
+            # Create storage from base_path or environment
+            base_path = kwargs.get("base_path")
+            if base_path is None:
+                base_path = os.getenv("AG_CRM_PATH")
+            if base_path is not None:
+                db_path = Path(base_path) / "crm.db"
+            else:
+                # Use default path under data/crm_exports
+                from agnetwork.config import config
+
+                db_path = config.project_root / "data" / "crm_exports" / "crm.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            kwargs["storage"] = CRMStorage(db_path=db_path)
 
         return adapter_class(**kwargs)
 

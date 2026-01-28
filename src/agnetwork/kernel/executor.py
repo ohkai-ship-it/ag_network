@@ -144,22 +144,24 @@ class KernelExecutor:
             )
         return self._llm_executor
 
-    def _get_memory_api(self, db_path=None):
+    def _get_memory_api(self, ws_ctx=None):
         """Get or create Memory API (lazy initialization).
-        
+
         Args:
-            db_path: Optional path to workspace database. If provided and different
-                     from cached, creates a new MemoryAPI instance.
+            ws_ctx: Optional WorkspaceContext. If provided, creates a new
+                    MemoryAPI instance bound to that workspace.
+
+        Returns:
+            MemoryAPI instance or None if no workspace context available.
         """
-        # If db_path is provided and we have a cached API with different path, recreate
-        if db_path is not None:
-            from agnetwork.storage.memory import MemoryAPI
-            return MemoryAPI(db_path=db_path)
-        
-        if self._memory_api is None:
-            from agnetwork.storage.memory import MemoryAPI
-            self._memory_api = MemoryAPI()
-        return self._memory_api
+        from agnetwork.storage.memory import MemoryAPI
+
+        # If ws_ctx is provided, create workspace-bound MemoryAPI
+        if ws_ctx is not None:
+            return MemoryAPI.for_workspace(ws_ctx)
+
+        # Without workspace context, memory operations are not available
+        return None
 
     def execute_task(
         self,
@@ -208,7 +210,7 @@ class KernelExecutor:
         # Use provided run manager or create new one
         task_spec = plan.task_spec
         workspace_ctx = getattr(task_spec, 'workspace_context', None)
-        
+
         if run_manager is not None:
             run = run_manager
         else:
@@ -230,18 +232,25 @@ class KernelExecutor:
         if memory_enabled:
             try:
                 # M8: Use workspace-specific database if available
-                db_path = workspace_ctx.db_path if workspace_ctx else None
-                memory_api = self._get_memory_api(db_path=db_path)
-                evidence_bundle = memory_api.retrieve_context(task_spec)
-                run.log_action(
-                    phase="memory",
-                    action="Retrieved evidence context",
-                    status="success",
-                    changes_made=[
-                        f"sources: {len(evidence_bundle.sources)}",
-                        f"artifacts: {len(evidence_bundle.artifacts)}",
-                    ],
-                )
+                memory_api = self._get_memory_api(ws_ctx=workspace_ctx)
+                if memory_api is not None:
+                    evidence_bundle = memory_api.retrieve_context(task_spec)
+                    run.log_action(
+                        phase="memory",
+                        action="Retrieved evidence context",
+                        status="success",
+                        changes_made=[
+                            f"sources: {len(evidence_bundle.sources)}",
+                            f"artifacts: {len(evidence_bundle.artifacts)}",
+                        ],
+                    )
+                else:
+                    run.log_action(
+                        phase="memory",
+                        action="Memory retrieval skipped",
+                        status="warning",
+                        issues_discovered=["No workspace context available for memory retrieval"],
+                    )
             except Exception as e:
                 run.log_action(
                     phase="memory",
@@ -347,8 +356,19 @@ class KernelExecutor:
 
         from agnetwork.storage.sqlite import SQLiteManager
 
+        # Get workspace context from RunManager
+        ws_ctx = run.workspace
+        if ws_ctx is None:
+            run.log_action(
+                phase="claims",
+                action="Claim persistence skipped",
+                status="warning",
+                issues_discovered=["No workspace context available for claims persistence"],
+            )
+            return 0
+
         try:
-            db = SQLiteManager()
+            db = SQLiteManager.for_workspace(ws_ctx)
             count = 0
 
             # Get first artifact ID (claims typically belong to the primary artifact)

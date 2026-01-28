@@ -107,7 +107,7 @@ class LLMSkillExecutor:
         """
         import logging
         logger = logging.getLogger(__name__)
-        
+
         company = inputs.get("company", "Unknown")
         snapshot = inputs.get("snapshot", "")
         pains = inputs.get("pains", [])
@@ -128,7 +128,7 @@ class LLMSkillExecutor:
         # Build prompt (M8: require evidence when sources are provided)
         require_evidence = bool(sources)
         logger.info(f"M8: Building prompt with require_evidence={require_evidence}, sources_count={len(sources)}")
-        
+
         system_prompt, user_prompt = build_research_brief_prompt(
             company=company,
             snapshot=snapshot,
@@ -813,6 +813,7 @@ class LLMSkillExecutor:
             List of source dicts with {id, title, content} for prompt building
         """
         import logging
+
         from agnetwork.storage.sqlite import SQLiteManager
         from agnetwork.workspaces import WorkspaceRegistry
 
@@ -823,11 +824,11 @@ class LLMSkillExecutor:
             registry = WorkspaceRegistry()
             if registry.workspace_exists(workspace):
                 ws_ctx = registry.load_workspace(workspace)
-                db = SQLiteManager(db_path=ws_ctx.db_path)
+                db = SQLiteManager.for_workspace(ws_ctx)
                 logger.debug(f"M8: Using workspace DB: {ws_ctx.db_path}")
             else:
-                db = SQLiteManager()
-                logger.debug("M8: Using default DB (workspace not found)")
+                logger.warning(f"M8: Workspace '{workspace}' not found, skipping source loading")
+                return sources
 
             # Load from source_ids if provided
             ids_to_load = source_ids if source_ids else evidence_bundle.source_ids
@@ -853,7 +854,7 @@ class LLMSkillExecutor:
                     logger.debug(f"M8: Loaded source {source_id} ({len(source_data.get('content', ''))} chars)")
                 else:
                     logger.warning(f"M8: Source not found: {source_id}")
-            
+
             logger.info(f"M8: Loaded {len(sources)} unique sources for evidence extraction")
         except Exception as e:
             # If we can't load sources, return empty list

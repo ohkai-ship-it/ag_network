@@ -269,9 +269,9 @@ class TestAdapterRegistry:
         adapters = AdapterRegistry.list_adapters()
         assert "file" in adapters
 
-    def test_get_adapter_default(self):
-        """get_adapter returns file adapter by default."""
-        adapter = get_adapter()
+    def test_get_adapter_with_storage(self, temp_storage):
+        """get_adapter returns file adapter when storage provided."""
+        adapter = get_adapter(storage=temp_storage)
         assert isinstance(adapter, FileCRMAdapter)
 
     def test_get_adapter_unknown_raises(self):

@@ -297,19 +297,20 @@ class TestMapRunTocrm:
         """map_run_to_crm convenience function works."""
         run_id = temp_run_dir.name
 
-        # Note: This uses default db, which may not have the run
-        # For proper test, we'd need to set up the run in the actual runs dir
-        package = map_run_to_crm(run_id, run_dir=temp_run_dir)
+        package = map_run_to_crm(run_id, run_dir=temp_run_dir, db=temp_db)
 
         assert package is not None
         assert len(package.accounts) == 1
 
-    def test_map_run_not_found_raises(self, temp_db):
+    def test_map_run_not_found_raises(self, temp_db, tmp_path):
         """map_run_to_crm raises for non-existent run."""
         mapper = PipelineMapper(db=temp_db)
 
+        # Provide a non-existent but valid path
+        fake_run_dir = tmp_path / "nonexistent_run_id"
+
         with pytest.raises(ValueError, match="not found"):
-            mapper.map_run("nonexistent_run_id")
+            mapper.map_run("nonexistent_run_id", run_dir=fake_run_dir)
 
 
 class TestMappingWithoutTargetMap:

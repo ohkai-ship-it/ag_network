@@ -330,7 +330,8 @@ class TestMemoryAPI:
     def memory_api(self, tmp_path):
         """Create a MemoryAPI with seeded test data."""
         db_path = tmp_path / "test_memory.db"
-        db = SQLiteManager(db_path)
+        workspace_id = "test-memory-workspace"
+        db = SQLiteManager(db_path, workspace_id=workspace_id)
 
         # Seed test data
         db.insert_source(
@@ -357,7 +358,7 @@ class TestMemoryAPI:
             content_json='{"company": "TargetCompany"}',
         )
 
-        api = MemoryAPI(db_path)
+        api = MemoryAPI(db_path, workspace_id=workspace_id)
         yield api
         # Ensure connections are closed for Windows cleanup
         close_sqlite_connections()

@@ -5,9 +5,14 @@ M4 additions:
 - Source existence checks
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from agnetwork.workspaces.context import WorkspaceContext
 
 # Required keys for agent_status.json
 REQUIRED_STATUS_KEYS = {
@@ -249,6 +254,7 @@ def validate_run_folder(
     run_path: Path,
     require_meta: bool = False,
     check_evidence: bool = False,
+    ws_ctx: Optional["WorkspaceContext"] = None,
 ) -> ValidationResult:
     """Validate an entire run folder for integrity.
 
@@ -256,6 +262,7 @@ def validate_run_folder(
         run_path: Path to run folder
         require_meta: Whether to require meta blocks in artifacts
         check_evidence: Whether to check claim evidence (M4)
+        ws_ctx: Optional WorkspaceContext for database access (required for check_evidence)
 
     Returns:
         ValidationResult with all errors and warnings
@@ -288,12 +295,16 @@ def validate_run_folder(
 
     # M4: Validate claim evidence if requested
     if check_evidence:
-        _validate_claim_evidence(run_path, result)
+        _validate_claim_evidence(run_path, result, ws_ctx)
 
     return result
 
 
-def _validate_claim_evidence(run_path: Path, result: ValidationResult) -> None:
+def _validate_claim_evidence(
+    run_path: Path,
+    result: ValidationResult,
+    ws_ctx: Optional["WorkspaceContext"] = None,
+) -> None:
     """Validate claim evidence consistency (M4).
 
     Checks that:
@@ -305,11 +316,19 @@ def _validate_claim_evidence(run_path: Path, result: ValidationResult) -> None:
     Args:
         run_path: Path to run folder
         result: ValidationResult to add errors/warnings to
+        ws_ctx: Optional WorkspaceContext for database access
     """
     from agnetwork.storage.sqlite import SQLiteManager, normalize_source_ids
 
+    if ws_ctx is None:
+        result.add_warning(
+            str(run_path),
+            "Cannot validate claim evidence: no workspace context provided"
+        )
+        return
+
     try:
-        db = SQLiteManager()
+        db = SQLiteManager.for_workspace(ws_ctx)
     except Exception as e:
         result.add_warning(str(run_path), f"Cannot connect to database: {e}")
         return

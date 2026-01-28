@@ -16,13 +16,16 @@ M5 additions:
 - run_id linkage for sources
 """
 
+from __future__ import annotations
+
 import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-from agnetwork.config import config
+if TYPE_CHECKING:
+    from agnetwork.workspaces.context import WorkspaceContext
 
 
 def normalize_source_ids(source_ids: Optional[Union[str, List[str]]]) -> List[str]:
@@ -86,22 +89,60 @@ class SQLiteManager:
     Provides CRUD operations for sources, companies, artifacts, and claims.
     Includes FTS5 full-text search support for memory retrieval.
 
+    IMPORTANT: Always use the `for_workspace()` factory or provide explicit
+    db_path + workspace_id to ensure workspace isolation.
+
     Supports context manager protocol for automatic cleanup:
-        with SQLiteManager(db_path) as db:
+        with SQLiteManager.for_workspace(ws_ctx) as db:
             db.add_source(...)
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path, *, workspace_id: Optional[str] = None):
         """Initialize database connection.
 
         Args:
-            db_path: Path to SQLite database file. Defaults to config.db_path.
+            db_path: Path to SQLite database file. REQUIRED.
+            workspace_id: Workspace ID for isolation guard. If provided,
+                         verify_workspace_id() is called automatically.
+
+        Raises:
+            TypeError: If db_path is None.
         """
-        self.db_path = db_path or config.db_path
+        if db_path is None:
+            raise TypeError(
+                "SQLiteManager requires explicit db_path. "
+                "Use SQLiteManager.for_workspace(ws_ctx) or pass db_path explicitly."
+            )
+        self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._closed = False
         self._workspace_id_verified = False  # Track if workspace ID has been verified
+        self._workspace_id = workspace_id
         self._init_db()
+
+        # Auto-verify workspace ID if provided
+        if workspace_id is not None:
+            self.verify_workspace_id(workspace_id)
+
+    @classmethod
+    def for_workspace(cls, ws_ctx: "WorkspaceContext") -> "SQLiteManager":
+        """Factory method to create a workspace-bound SQLiteManager.
+
+        This is the preferred way to create a SQLiteManager instance.
+        It automatically binds to the workspace's database and verifies
+        the workspace ID.
+
+        Args:
+            ws_ctx: WorkspaceContext with db_path and workspace_id.
+
+        Returns:
+            SQLiteManager bound to the workspace.
+
+        Example:
+            with SQLiteManager.for_workspace(ws_ctx) as db:
+                db.insert_source(...)
+        """
+        return cls(db_path=ws_ctx.db_path, workspace_id=ws_ctx.workspace_id)
 
     def __enter__(self) -> "SQLiteManager":
         """Enter context manager."""

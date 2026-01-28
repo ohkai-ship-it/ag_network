@@ -10,13 +10,14 @@ External refs are stored as JSON in each table for simplicity.
 M6: Read/write to local database only. No breaking changes to existing tables.
 """
 
+from __future__ import annotations
+
 import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from agnetwork.config import config
 from agnetwork.crm.models import (
     Account,
     Activity,
@@ -26,6 +27,9 @@ from agnetwork.crm.models import (
     ExternalRef,
 )
 
+if TYPE_CHECKING:
+    from agnetwork.workspaces.context import WorkspaceContext
+
 
 class CRMStorage:
     """SQLite storage for canonical CRM data.
@@ -33,21 +37,51 @@ class CRMStorage:
     Provides CRUD operations for accounts, contacts, and activities.
     Maintains traceability to the run system via run_id, artifact_refs, source_ids.
 
+    IMPORTANT: Always use the `for_workspace()` factory or provide explicit
+    db_path to ensure workspace isolation.
+
     Supports context manager protocol for automatic cleanup:
-        with CRMStorage(db_path) as storage:
+        with CRMStorage.for_workspace(ws_ctx) as storage:
             storage.insert_account(...)
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path):
         """Initialize CRM storage.
 
         Args:
-            db_path: Path to SQLite database. Defaults to config.db_path.
+            db_path: Path to SQLite database. REQUIRED.
+
+        Raises:
+            TypeError: If db_path is None.
         """
-        self.db_path = db_path or config.db_path
+        if db_path is None:
+            raise TypeError(
+                "CRMStorage requires explicit db_path. "
+                "Use CRMStorage.for_workspace(ws_ctx) or pass db_path explicitly."
+            )
+        self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._closed = False
         self._init_tables()
+
+    @classmethod
+    def for_workspace(cls, ws_ctx: "WorkspaceContext") -> "CRMStorage":
+        """Factory method to create a workspace-bound CRMStorage.
+
+        This is the preferred way to create a CRMStorage instance.
+        It automatically binds to the workspace's database.
+
+        Args:
+            ws_ctx: WorkspaceContext with db_path.
+
+        Returns:
+            CRMStorage bound to the workspace.
+
+        Example:
+            with CRMStorage.for_workspace(ws_ctx) as storage:
+                storage.insert_account(...)
+        """
+        return cls(db_path=ws_ctx.db_path)
 
     def __enter__(self) -> "CRMStorage":
         """Enter context manager."""

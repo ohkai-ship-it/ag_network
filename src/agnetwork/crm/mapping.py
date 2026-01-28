@@ -19,7 +19,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
-from agnetwork.config import config
 from agnetwork.crm.ids import make_account_id, make_activity_id, make_contact_id
 from agnetwork.crm.models import (
     Account,
@@ -45,18 +44,26 @@ class PipelineMapper:
     All objects carry full traceability to sources and artifacts.
     """
 
-    def __init__(self, db: Optional[SQLiteManager] = None):
+    def __init__(self, db: SQLiteManager):
         """Initialize the mapper.
 
         Args:
-            db: SQLiteManager for querying claims/sources. Creates new one if not provided.
+            db: SQLiteManager for querying claims/sources. REQUIRED.
+
+        Raises:
+            TypeError: If db is None.
         """
-        self.db = db or SQLiteManager()
+        if db is None:
+            raise TypeError(
+                "PipelineMapper requires a SQLiteManager instance. "
+                "Use SQLiteManager.for_workspace(ws_ctx) to create one."
+            )
+        self.db = db
 
     def map_run(
         self,
         run_id: str,
-        run_dir: Optional[Path] = None,
+        run_dir: Path,
         company: Optional[str] = None,
         domain: Optional[str] = None,
     ) -> CRMExportPackage:
@@ -64,16 +71,23 @@ class PipelineMapper:
 
         Args:
             run_id: Run ID to map
-            run_dir: Path to run directory (auto-detected if not provided)
+            run_dir: Path to run directory. REQUIRED.
             company: Company name (read from inputs.json if not provided)
             domain: Company domain (optional)
 
         Returns:
             CRMExportPackage with mapped objects
+
+        Raises:
+            TypeError: If run_dir is None.
+            ValueError: If run_dir does not exist.
         """
         # Resolve run directory
         if run_dir is None:
-            run_dir = config.runs_dir / run_id
+            raise TypeError(
+                "PipelineMapper.map_run requires explicit run_dir. "
+                "Use ws_ctx.runs_dir / run_id to get the correct path."
+            )
 
         if not run_dir.exists():
             raise ValueError(f"Run directory not found: {run_dir}")
@@ -532,7 +546,8 @@ class PipelineMapper:
 
 def map_run_to_crm(
     run_id: str,
-    run_dir: Optional[Path] = None,
+    run_dir: Path,
+    db: SQLiteManager,
     company: Optional[str] = None,
     domain: Optional[str] = None,
 ) -> CRMExportPackage:
@@ -540,12 +555,13 @@ def map_run_to_crm(
 
     Args:
         run_id: Run ID to map
-        run_dir: Path to run directory
+        run_dir: Path to run directory. REQUIRED.
+        db: SQLiteManager instance. REQUIRED.
         company: Company name
         domain: Company domain
 
     Returns:
         CRMExportPackage with mapped objects
     """
-    mapper = PipelineMapper()
+    mapper = PipelineMapper(db=db)
     return mapper.map_run(run_id, run_dir, company, domain)

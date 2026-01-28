@@ -60,16 +60,24 @@ class FileCRMAdapter(BaseCRMAdapter):
 
     def __init__(
         self,
-        storage: Optional[CRMStorage] = None,
+        storage: CRMStorage,
         base_path: Optional[Path] = None,
     ):
         """Initialize the file adapter.
 
         Args:
-            storage: CRMStorage instance. Creates new one if not provided.
+            storage: CRMStorage instance. REQUIRED.
             base_path: Base path for exports. Defaults to AG_CRM_PATH or data/crm_exports/
+
+        Raises:
+            TypeError: If storage is None.
         """
-        self.storage = storage or CRMStorage()
+        if storage is None:
+            raise TypeError(
+                "FileCRMAdapter requires a CRMStorage instance. "
+                "Use CRMStorage.for_workspace(ws_ctx) to create one."
+            )
+        self.storage = storage
 
         # Get base path from env or default
         default_path = config.project_root / "data" / "crm_exports"

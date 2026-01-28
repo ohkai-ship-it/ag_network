@@ -1,23 +1,37 @@
 """Source ingestion tools."""
 
+from __future__ import annotations
+
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 from uuid import uuid4
 
 from agnetwork.storage.sqlite import SQLiteManager
 
+if TYPE_CHECKING:
+    from agnetwork.workspaces.context import WorkspaceContext
+
 
 class SourceIngestor:
-    """Handles ingestion of sources (URLs, pasted text, files)."""
+    """Handles ingestion of sources (URLs, pasted text, files).
 
-    def __init__(self, run_dir: Path):
-        """Initialize with run directory for storing sources."""
+    IMPORTANT: Requires a WorkspaceContext for workspace-scoped storage.
+    """
+
+    def __init__(self, run_dir: Path, ws_ctx: "WorkspaceContext"):
+        """Initialize with run directory and workspace context.
+
+        Args:
+            run_dir: Path to the run directory for storing sources.
+            ws_ctx: WorkspaceContext for database access.
+        """
         self.run_dir = run_dir
         self.sources_dir = run_dir / "sources"
         self.sources_dir.mkdir(exist_ok=True)
-        self.db = SQLiteManager()
+        self.ws_ctx = ws_ctx
+        self.db = SQLiteManager.for_workspace(ws_ctx)
         self.ingested_sources: List[Dict] = []
 
     def ingest_text(

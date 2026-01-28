@@ -258,9 +258,6 @@ def research(
     run = RunManager(command="research", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
     typer.echo(f"📁 Run folder: {run.run_dir}")
 
-    # Get workspace-scoped database
-    db_path = ws_ctx.db_path
-
     try:
         # Log start
         run.log_action(
@@ -270,8 +267,8 @@ def research(
             next_action="Ingest sources",
         )
 
-        # Initialize source ingestor
-        ingestor = SourceIngestor(run.run_dir)
+        # Initialize source ingestor with workspace context
+        ingestor = SourceIngestor(run.run_dir, ws_ctx)
         captured_sources = []
 
         # Fetch URLs if provided (M5)
@@ -281,7 +278,7 @@ def research(
             from agnetwork.tools.web import SourceCapture
 
             capture = SourceCapture(run.run_dir / "sources")
-            db = SQLiteManager(db_path=db_path)
+            db = SQLiteManager.for_workspace(ws_ctx)
 
             for url in urls:
                 typer.echo(f"   Fetching: {url[:60]}...")

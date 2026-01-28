@@ -467,12 +467,14 @@ class Verifier:
 def create_verifier_with_sources(  # noqa: C901
     sources_dir: Optional[Path] = None,
     db_path: Optional[Path] = None,
+    workspace_id: Optional[str] = None,
 ) -> Verifier:
     """Create a Verifier with a source loader for evidence verification.
 
     Args:
         sources_dir: Path to sources directory (for file-based lookup)
         db_path: Path to SQLite database (for DB-based lookup)
+        workspace_id: Workspace ID for DB isolation (required if db_path is provided)
 
     Returns:
         Verifier instance with source_loader configured
@@ -515,10 +517,10 @@ def create_verifier_with_sources(  # noqa: C901
                     continue
 
         # Try DB-based lookup
-        if db_path is not None:
+        if db_path is not None and workspace_id is not None:
             try:
                 from agnetwork.storage.sqlite import SQLiteManager
-                db = SQLiteManager(db_path=db_path)
+                db = SQLiteManager(db_path=db_path, workspace_id=workspace_id)
                 source = db.get_source(source_id)
                 if source:
                     text = source.get("clean_text", "")

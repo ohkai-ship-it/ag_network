@@ -13,14 +13,19 @@ Key components:
 - retrieve_context: Get relevant context for a task
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from agnetwork.storage.sqlite import SQLiteManager
+
+if TYPE_CHECKING:
+    from agnetwork.workspaces.context import WorkspaceContext
 
 
 @dataclass
@@ -140,15 +145,45 @@ class MemoryAPI:
     """Memory API for retrieval over stored sources and artifacts.
 
     Provides FTS5-backed search and retrieval functions for the kernel.
+
+    IMPORTANT: Requires explicit db_path and workspace_id for workspace isolation.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path, *, workspace_id: str):
         """Initialize Memory API.
 
         Args:
-            db_path: Path to SQLite database. Defaults to config.db_path.
+            db_path: Path to SQLite database. REQUIRED.
+            workspace_id: Workspace ID for isolation guard. REQUIRED.
+
+        Raises:
+            TypeError: If db_path or workspace_id is None.
         """
-        self.db = SQLiteManager(db_path)
+        if db_path is None:
+            raise TypeError(
+                "MemoryAPI requires explicit db_path. "
+                "Use MemoryAPI.for_workspace(ws_ctx) or pass db_path explicitly."
+            )
+        if workspace_id is None:
+            raise TypeError(
+                "MemoryAPI requires explicit workspace_id. "
+                "Use MemoryAPI.for_workspace(ws_ctx) or pass workspace_id explicitly."
+            )
+        self.db = SQLiteManager(db_path, workspace_id=workspace_id)
+
+    @classmethod
+    def for_workspace(cls, ws_ctx: "WorkspaceContext") -> "MemoryAPI":
+        """Factory method to create a workspace-bound MemoryAPI.
+
+        This is the preferred way to create a MemoryAPI instance.
+
+        Args:
+            ws_ctx: WorkspaceContext with db_path and workspace_id.
+
+        Returns:
+            MemoryAPI bound to the workspace.
+        """
+        return cls(db_path=ws_ctx.db_path, workspace_id=ws_ctx.workspace_id)
 
     def search_sources(
         self,
