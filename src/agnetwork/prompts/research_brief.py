@@ -43,21 +43,26 @@ def build_research_brief_prompt(
       "evidence": [
         {
           "source_id": string (must match a provided source ID),
-          "quote": string (verbatim quote from source, <=220 chars, prefer full sentences)
+          "quote": string (EXACT verbatim quote copied from source, <=220 chars)
         }
       ] (required if is_assumption=false, empty array if assumption)
     }
   ] (required, list of 2-5 angles)
 }"""
-        evidence_rules = """EVIDENCE RULES (M8 - CRITICAL):
+        evidence_rules = """EVIDENCE RULES (M8 - CRITICAL - READ CAREFULLY):
 1. If a fact comes from sources, set is_assumption: false, list source_ids, AND include evidence quotes
-2. Each evidence item must have a verbatim quote (<=220 characters) copied EXACTLY from the source
-3. Quotes must be full sentences when possible - no partial fragments
-4. If you cannot find a verbatim quote to support a fact, mark it as is_assumption: true
-5. NEVER invent or paraphrase quotes - they must appear EXACTLY in the source text
-6. If no source supports the fact, set is_assumption: true, source_ids: [], evidence: []
-7. ONLY reference source IDs that were provided to you
-8. Do NOT invent specific statistics, quotes, or citations"""
+2. QUOTES MUST BE COPIED CHARACTER-FOR-CHARACTER from the source text - do NOT paraphrase or modify
+3. Copy the quote EXACTLY as it appears, including German characters (ü, ö, ä, ß) and punctuation
+4. If you cannot copy a quote EXACTLY verbatim, mark the fact as is_assumption: true instead
+5. NEVER translate, summarize, or rephrase - the quote must be a literal substring of the source
+6. Quotes should be <=220 characters, prefer complete sentences
+7. If no source supports the fact with an exact quote, set is_assumption: true, source_ids: [], evidence: []
+8. ONLY reference source IDs that were provided to you
+9. Do NOT invent specific statistics, quotes, or citations
+
+EXAMPLE - If source contains: "Nach fast vier Jahrzehnten am Markt sind wir heute deutscher Marktführer."
+CORRECT quote: "Nach fast vier Jahrzehnten am Markt sind wir heute deutscher Marktführer."
+WRONG quote: "Nach fast vier Jahren am Markt..." (changed word = INVALID)"""
     else:
         schema_example = """{
   "company": string (required),

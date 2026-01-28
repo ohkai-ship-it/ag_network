@@ -85,7 +85,7 @@ class Verifier:
     REQUIRED_FIELDS: Dict[str, List[str]] = {
         "research_brief": ["company", "snapshot"],
         "target_map": ["company", "personas"],
-        "outreach": ["company", "persona", "channel"],
+        "outreach": ["company", "persona", "variants"],
         "meeting_prep": ["company", "meeting_type", "agenda"],
         "followup": ["company", "summary", "next_steps"],
     }

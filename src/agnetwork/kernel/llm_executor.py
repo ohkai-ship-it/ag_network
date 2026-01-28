@@ -23,6 +23,7 @@ from agnetwork.kernel.contracts import (
     SkillContext,
     SkillMetrics,
     SkillResult,
+    SourceRef,
 )
 from agnetwork.models.core import (
     FollowUpSummary,
@@ -104,6 +105,9 @@ class LLMSkillExecutor:
         Returns:
             SkillResult with artifacts and claims
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         company = inputs.get("company", "Unknown")
         snapshot = inputs.get("snapshot", "")
         pains = inputs.get("pains", [])
@@ -111,7 +115,20 @@ class LLMSkillExecutor:
         competitors = inputs.get("competitors", [])
         sources = inputs.get("sources", [])
 
-        # Build prompt
+        # M8: Load source content from evidence bundle if available
+        logger.debug(f"M8: sources={len(sources)}, evidence_bundle={context.evidence_bundle is not None}, memory_enabled={context.memory_enabled}")
+        if not sources and context.evidence_bundle and context.memory_enabled:
+            sources = self._load_sources_from_bundle(
+                context.evidence_bundle,
+                inputs.get("source_ids", []),
+                workspace=context.workspace,
+            )
+            logger.info(f"M8: Loaded {len(sources)} sources from evidence bundle for research_brief")
+
+        # Build prompt (M8: require evidence when sources are provided)
+        require_evidence = bool(sources)
+        logger.info(f"M8: Building prompt with require_evidence={require_evidence}, sources_count={len(sources)}")
+        
         system_prompt, user_prompt = build_research_brief_prompt(
             company=company,
             snapshot=snapshot,
@@ -119,6 +136,7 @@ class LLMSkillExecutor:
             triggers=triggers,
             competitors=competitors,
             sources=sources,
+            require_evidence=require_evidence,
         )
 
         # Generate and parse
@@ -542,11 +560,17 @@ class LLMSkillExecutor:
         claims = []
         for angle in angles:
             is_assumption = angle.get("is_assumption", True)
+            # Extract evidence from source_ids
+            source_ids = angle.get("source_ids", [])
+            evidence = [
+                SourceRef(source_id=sid, source_type="url")
+                for sid in source_ids
+            ]
             claims.append(
                 Claim(
                     text=angle.get("fact", ""),
                     kind=ClaimKind.ASSUMPTION if is_assumption else ClaimKind.FACT,
-                    evidence=[],
+                    evidence=evidence,
                 )
             )
         return claims
@@ -558,11 +582,17 @@ class LLMSkillExecutor:
         claims = []
         for persona in personas:
             is_assumption = persona.get("is_assumption", True)
+            # Extract evidence from source_ids
+            source_ids = persona.get("source_ids", [])
+            evidence = [
+                SourceRef(source_id=sid, source_type="url")
+                for sid in source_ids
+            ]
             claims.append(
                 Claim(
                     text=persona.get("hypothesis", ""),
                     kind=ClaimKind.ASSUMPTION if is_assumption else ClaimKind.FACT,
-                    evidence=[],
+                    evidence=evidence,
                 )
             )
         return claims
@@ -762,6 +792,74 @@ class LLMSkillExecutor:
         lines.append(data.get("crm_notes", ""))
         lines.append("```")
         return "\n".join(lines)
+
+    def _load_sources_from_bundle(
+        self,
+        evidence_bundle: Any,
+        source_ids: List[str],
+        workspace: str = "work",
+    ) -> List[Dict[str, Any]]:
+        """Load source content from evidence bundle and database.
+
+        M8: Enables evidence extraction by loading actual source text
+        so the LLM can extract verbatim quotes.
+
+        Args:
+            evidence_bundle: The evidence bundle from memory retrieval
+            source_ids: List of source IDs to load
+            workspace: Workspace name to get correct database
+
+        Returns:
+            List of source dicts with {id, title, content} for prompt building
+        """
+        import logging
+        from agnetwork.storage.sqlite import SQLiteManager
+        from agnetwork.workspaces import WorkspaceRegistry
+
+        logger = logging.getLogger(__name__)
+        sources = []
+        try:
+            # Get workspace-specific database path
+            registry = WorkspaceRegistry()
+            if registry.workspace_exists(workspace):
+                ws_ctx = registry.load_workspace(workspace)
+                db = SQLiteManager(db_path=ws_ctx.db_path)
+                logger.debug(f"M8: Using workspace DB: {ws_ctx.db_path}")
+            else:
+                db = SQLiteManager()
+                logger.debug("M8: Using default DB (workspace not found)")
+
+            # Load from source_ids if provided
+            ids_to_load = source_ids if source_ids else evidence_bundle.source_ids
+            logger.debug(f"M8: Loading {len(ids_to_load)} source IDs")
+
+            # Deduplicate while preserving order
+            seen = set()
+            unique_ids = []
+            for sid in ids_to_load:
+                if sid not in seen:
+                    seen.add(sid)
+                    unique_ids.append(sid)
+
+            for source_id in unique_ids:
+                source_data = db.get_source(source_id)
+                if source_data:
+                    sources.append({
+                        "id": source_id,
+                        "title": source_data.get("title", ""),
+                        "content": source_data.get("content", "")[:4000],  # Limit content size
+                        "url": source_data.get("uri", ""),
+                    })
+                    logger.debug(f"M8: Loaded source {source_id} ({len(source_data.get('content', ''))} chars)")
+                else:
+                    logger.warning(f"M8: Source not found: {source_id}")
+            
+            logger.info(f"M8: Loaded {len(sources)} unique sources for evidence extraction")
+        except Exception as e:
+            # If we can't load sources, return empty list
+            logger.error(f"M8: Failed to load sources: {e}")
+
+        return sources
 
 
 # Skill name to executor method mapping

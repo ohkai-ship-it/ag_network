@@ -682,7 +682,7 @@ def _fetch_urls_for_pipeline(
     deep_links: bool = False,
     deep_links_mode: str = "deterministic",
     deep_links_max: int = 4,
-) -> Tuple[List[str], Optional[Path]]:
+) -> Tuple[List[str], "RunManager"]:
     """Fetch URLs and store them for pipeline use.
 
     Args:
@@ -694,7 +694,7 @@ def _fetch_urls_for_pipeline(
         deep_links_max: Maximum deep links to fetch per homepage
 
     Returns:
-        Tuple of (list of captured source IDs, run_dir for deep links audit)
+        Tuple of (list of captured source IDs, RunManager for reuse by executor)
     """
     from agnetwork.orchestrator import RunManager
     from agnetwork.storage.sqlite import SQLiteManager
@@ -741,7 +741,7 @@ def _fetch_urls_for_pipeline(
             typer.echo(f"   ❌ Failed: {result.error}", err=True)
 
     typer.echo(f"✅ Captured {len(captured_source_ids)} URLs")
-    return captured_source_ids, temp_run.run_dir
+    return captured_source_ids, temp_run
 
 
 def _print_pipeline_result(
@@ -868,8 +868,9 @@ def run_pipeline(
 
     # Fetch URLs if provided (with optional deep link discovery - M8)
     captured_source_ids: List[str] = []
+    pipeline_run = None  # Will be set if URLs are fetched
     if urls:
-        captured_source_ids, _ = _fetch_urls_for_pipeline(
+        captured_source_ids, pipeline_run = _fetch_urls_for_pipeline(
             urls,
             company,
             ws_ctx,
@@ -915,7 +916,8 @@ def run_pipeline(
         use_memory=use_memory,
     )
 
-    result = executor.execute_task(task_spec)
+    # Pass the run_manager from URL fetching to reuse the same run folder
+    result = executor.execute_task(task_spec, run_manager=pipeline_run)
     _print_pipeline_result(result, exec_mode, captured_source_ids)
 
     if not result.success:

@@ -1,0 +1,48 @@
+{
+  "company": "von Rundstedt",
+  "personas": [
+    {
+      "title": "Chief Financial Officer",
+      "role": "economic_buyer",
+      "hypothesis": "As the CFO, they are responsible for budget approvals. Highlight cost efficiency and ROI to align with their financial objectives.",
+      "is_assumption": true,
+      "source_ids": []
+    },
+    {
+      "title": "Head of Human Resources",
+      "role": "champion",
+      "hypothesis": "This role is crucial for driving the adoption of solutions that impact workforce management. Engage them by showing how the solution aligns with HR initiatives.",
+      "is_assumption": true,
+      "source_ids": []
+    },
+    {
+      "title": "IT Manager",
+      "role": "technical_evaluator",
+      "hypothesis": "They assess technical requirements and integrations. Address any technical specifications and integrations with existing systems.",
+      "is_assumption": true,
+      "source_ids": []
+    },
+    {
+      "title": "Head of Change Management",
+      "role": "influencer",
+      "hypothesis": "They are likely to shape the organizational approach to new tools. Demonstrate how the solution supports change management processes.",
+      "is_assumption": true,
+      "source_ids": []
+    },
+    {
+      "title": "Senior Outplacement Consultant",
+      "role": "end_user",
+      "hypothesis": "Ensure that the solution enhances their daily operations and effectiveness in delivering their services.",
+      "is_assumption": true,
+      "source_ids": []
+    }
+  ],
+  "created_at": "2026-01-27T13:48:53.406969Z",
+  "meta": {
+    "artifact_version": "1.0",
+    "skill_name": "target_map",
+    "skill_version": "1.0",
+    "generated_at": "2026-01-27T13:48:54.064008+00:00",
+    "run_id": "20260127_134749__von_rundstedt__pipeline"
+  }
+}

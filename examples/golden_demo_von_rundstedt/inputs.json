@@ -1,0 +1,27 @@
+{
+  "company": "von Rundstedt",
+  "snapshot": "Leading German HR consulting company specializing in outplacement, career transition, and workforce transformation since 1985. Market leader with 27 locations in DACH and 86 of Germany's top 100 companies as clients.",
+  "pains": [
+    "Workforce restructuring during economic uncertainty",
+    "Employee career transition support needed"
+  ],
+  "triggers": [
+    "Economic downturn forcing layoffs"
+  ],
+  "competitors": [
+    "Korn Ferry",
+    "LHH"
+  ],
+  "persona": "CHRO",
+  "channel": "email",
+  "meeting_type": "discovery",
+  "notes": "Pipeline run completed",
+  "source_ids": [
+    "src_www_rundstedt_de_1d01dd13",
+    "src_www_rundstedt_de_newsletter_6e26a923",
+    "src_www_rundstedt_de_berufliche_veraenderung_perspektivenberatung_5ad7200e",
+    "src_www_rundstedt_de_berufliche_veraenderung_beratungsteam_4c2c799a"
+  ],
+  "deep_links_enabled": true,
+  "deep_links_mode": "deterministic"
+}

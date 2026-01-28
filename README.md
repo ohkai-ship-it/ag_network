@@ -1,10 +1,10 @@
 # AG Network - Autonomous Business Development Agent
 
-**Status**: ✅ **v0.1 + M1-M7 Complete**  
+**Status**: ✅ **v0.2.0 — M1-M8 Complete**  
 **Package**: `agnetwork`  
-**Documentation**: `COMPLETION_SUMMARY.md`, `M7_IMPLEMENTATION_SUMMARY.md`, `PROTOCOL.md`
+**Documentation**: `CHANGELOG.md`, `COMPLETION_SUMMARY.md`, `PROTOCOL.md`
 
-**New in M7**: Configurable workspaces with isolated storage, Work Ops & Personal Ops skill packs, per-workspace preferences!
+**New in v0.2**: Workspaces, Work/Personal Ops skill packs, deep link discovery, OpenAI integration!
 
 ---
 

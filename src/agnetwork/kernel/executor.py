@@ -144,15 +144,28 @@ class KernelExecutor:
             )
         return self._llm_executor
 
-    def _get_memory_api(self):
-        """Get or create Memory API (lazy initialization)."""
+    def _get_memory_api(self, db_path=None):
+        """Get or create Memory API (lazy initialization).
+        
+        Args:
+            db_path: Optional path to workspace database. If provided and different
+                     from cached, creates a new MemoryAPI instance.
+        """
+        # If db_path is provided and we have a cached API with different path, recreate
+        if db_path is not None:
+            from agnetwork.storage.memory import MemoryAPI
+            return MemoryAPI(db_path=db_path)
+        
         if self._memory_api is None:
             from agnetwork.storage.memory import MemoryAPI
             self._memory_api = MemoryAPI()
         return self._memory_api
 
     def execute_task(
-        self, task_spec: TaskSpec, use_memory: Optional[bool] = None
+        self,
+        task_spec: TaskSpec,
+        use_memory: Optional[bool] = None,
+        run_manager: Optional[Any] = None,
     ) -> ExecutionResult:
         """Execute a task specification.
 
@@ -161,21 +174,26 @@ class KernelExecutor:
         Args:
             task_spec: The task to execute
             use_memory: Override memory setting for this execution
+            run_manager: Optional existing RunManager to reuse (for unified run folders)
 
         Returns:
             ExecutionResult with results and any errors
         """
         plan = self.planner.create_plan(task_spec)
-        return self.execute_plan(plan, use_memory=use_memory)
+        return self.execute_plan(plan, use_memory=use_memory, run_manager=run_manager)
 
     def execute_plan(
-        self, plan: Plan, use_memory: Optional[bool] = None
+        self,
+        plan: Plan,
+        use_memory: Optional[bool] = None,
+        run_manager: Optional[Any] = None,
     ) -> ExecutionResult:  # noqa: C901
         """Execute an execution plan.
 
         Args:
             plan: The plan to execute
             use_memory: Override memory setting for this execution
+            run_manager: Optional existing RunManager to reuse (for unified run folders)
 
         Returns:
             ExecutionResult with results and any errors
@@ -187,16 +205,21 @@ class KernelExecutor:
         result.mode = self.mode
         result.memory_enabled = memory_enabled
 
-        # Create run manager with workspace context if provided
+        # Use provided run manager or create new one
         task_spec = plan.task_spec
-        command = (
-            "pipeline"
-            if task_spec.task_type.value == "pipeline"
-            else task_spec.task_type.value
-        )
-        # M7.1: Pass workspace context to RunManager for scoped runs
         workspace_ctx = getattr(task_spec, 'workspace_context', None)
-        run = RunManager(command=command, slug=task_spec.get_slug(), workspace=workspace_ctx)
+        
+        if run_manager is not None:
+            run = run_manager
+        else:
+            # Create run manager with workspace context if provided
+            command = (
+                "pipeline"
+                if task_spec.task_type.value == "pipeline"
+                else task_spec.task_type.value
+            )
+            # M7.1: Pass workspace context to RunManager for scoped runs
+            run = RunManager(command=command, slug=task_spec.get_slug(), workspace=workspace_ctx)
         result.run_id = run.run_id
 
         # Save inputs
@@ -206,7 +229,9 @@ class KernelExecutor:
         evidence_bundle = None
         if memory_enabled:
             try:
-                memory_api = self._get_memory_api()
+                # M8: Use workspace-specific database if available
+                db_path = workspace_ctx.db_path if workspace_ctx else None
+                memory_api = self._get_memory_api(db_path=db_path)
                 evidence_bundle = memory_api.retrieve_context(task_spec)
                 run.log_action(
                     phase="memory",
@@ -422,10 +447,14 @@ class KernelExecutor:
             status="in_progress",
         )
 
+        # M8: Get actual workspace name from workspace_context if available
+        workspace_ctx = getattr(task_spec, 'workspace_context', None)
+        workspace_name = workspace_ctx.name if workspace_ctx else task_spec.workspace.value
+
         # Build context with evidence bundle if available
         context = SkillContext(
             run_id=run.run_id,
-            workspace=task_spec.workspace.value,
+            workspace=workspace_name,
             step_inputs={
                 dep_id: step_outputs.get(dep_id) for dep_id in step.depends_on
             },
