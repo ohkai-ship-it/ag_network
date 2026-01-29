@@ -1013,13 +1013,29 @@ class SQLiteManager:
 
         Returns:
             List of source hits with id, title, excerpt, score, and metadata
+
+        Raises:
+            TypeError: If called on an unscoped instance (PR5 invariant).
+
+        Note:
+            PR5: Includes defensive workspace filter via EXISTS check on
+            workspace_meta. Even if rows were somehow inserted into the wrong
+            DB, they won't be returned unless workspace_meta matches.
         """
+        # PR5: Enforce workspace scoping - FTS search requires workspace_id
+        if self._workspace_id is None:
+            raise TypeError(
+                "search_sources_fts requires workspace_id. "
+                "Use SQLiteManager(db_path, workspace_id=...) or for_workspace(ws_ctx)."
+            )
+
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
             # Use FTS5 MATCH with BM25 ranking
             # Join using source_id column stored in FTS table
+            # PR5: Add defensive workspace filter via EXISTS check
             cursor.execute(
                 """
                 SELECT
@@ -1034,10 +1050,14 @@ class SQLiteManager:
                 FROM sources_fts
                 JOIN sources s ON sources_fts.source_id = s.id
                 WHERE sources_fts MATCH ?
+                  AND EXISTS (
+                      SELECT 1 FROM workspace_meta
+                      WHERE workspace_id = ?
+                  )
                 ORDER BY score
                 LIMIT ?
                 """,
-                (query, limit),
+                (query, self._workspace_id, limit),
             )
 
             results = []
@@ -1068,13 +1088,29 @@ class SQLiteManager:
 
         Returns:
             List of artifact hits with id, name, type, excerpt, and score
+
+        Raises:
+            TypeError: If called on an unscoped instance (PR5 invariant).
+
+        Note:
+            PR5: Includes defensive workspace filter via EXISTS check on
+            workspace_meta. Even if rows were somehow inserted into the wrong
+            DB, they won't be returned unless workspace_meta matches.
         """
+        # PR5: Enforce workspace scoping - FTS search requires workspace_id
+        if self._workspace_id is None:
+            raise TypeError(
+                "search_artifacts_fts requires workspace_id. "
+                "Use SQLiteManager(db_path, workspace_id=...) or for_workspace(ws_ctx)."
+            )
+
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
             # Use FTS5 MATCH with BM25 ranking
             # Join using artifact_id column stored in FTS table
+            # PR5: Add defensive workspace filter via EXISTS check
             cursor.execute(
                 """
                 SELECT
@@ -1089,10 +1125,14 @@ class SQLiteManager:
                 FROM artifacts_fts
                 JOIN artifacts a ON artifacts_fts.artifact_id = a.id
                 WHERE artifacts_fts MATCH ?
+                  AND EXISTS (
+                      SELECT 1 FROM workspace_meta
+                      WHERE workspace_id = ?
+                  )
                 ORDER BY score
                 LIMIT ?
                 """,
-                (query, limit),
+                (query, self._workspace_id, limit),
             )
 
             return [dict(row) for row in cursor.fetchall()]

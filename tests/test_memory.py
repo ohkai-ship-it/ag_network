@@ -226,7 +226,8 @@ class TestFTS5Search:
     def seeded_db(self, tmp_path):
         """Create a database seeded with test data."""
         db_path = tmp_path / "test_fts.db"
-        db = SQLiteManager.unscoped(db_path)
+        # PR5: FTS search requires workspace_id
+        db = SQLiteManager(db_path, workspace_id="test-fts-ws")
 
         # Insert test sources
         db.insert_source(
@@ -659,7 +660,8 @@ class TestFTSTriggers:
     def fresh_db(self, tmp_path):
         """Create a fresh database."""
         db_path = tmp_path / "test_triggers.db"
-        db = SQLiteManager.unscoped(db_path)
+        # PR5: FTS search requires workspace_id
+        db = SQLiteManager(db_path, workspace_id="test-triggers-ws")
         yield db
         # Ensure connections are closed for Windows cleanup
         close_sqlite_connections()
