@@ -3,7 +3,17 @@
 > **Version**: 0.2.0  
 > **Package**: `ag-network`  
 > **License**: MIT  
-> **Last Updated**: January 28, 2026
+> **Last Updated**: January 29, 2026
+
+---
+
+## Related Documentation
+
+| Document | Description |
+|----------|-------------|
+| [CLI_REFERENCE.md](CLI_REFERENCE.md) | Complete CLI command reference |
+| [AGENT_HANDOFF_WORKFLOW.md](AGENT_HANDOFF_WORKFLOW.md) | Multi-agent collaboration guide |
+| [dev/agent_handoff/](dev/agent_handoff/) | Handoff coordination files |
 
 ---
 
@@ -115,7 +125,9 @@ For multi-agent or multi-session development workflows, see:
 
 | Module | Path | Responsibility |
 |--------|------|----------------|
-| **CLI** | `cli.py` | Typer-based CLI with 19+ commands, argument parsing, workspace resolution |
+| **CLI** | `cli/` | Modular Typer CLI with 25+ commands across 8 command files |
+| **CLI App** | `cli/app.py` | Typer app setup, `--workspace` flag, workspace resolution |
+| **CLI Commands** | `cli/commands_*.py` | Pipeline, research, workspace, CRM, memory, sequence, skills |
 | **Config** | `config.py` | Global configuration, `LLMConfig` from environment variables |
 | **Orchestrator** | `orchestrator.py` | `RunManager` for run folder creation and logging |
 | **Validate** | `validate.py` | Run folder validation utilities |

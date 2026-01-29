@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.1] - 2026-01-29
+
+### Added
+
+#### Workspace Isolation Hardening
+- **AST-enforced invariants** — Tests prevent global storage fallbacks
+- **Workspace ID required** — `SQLiteManager` and `CRMStorage` require workspace_id
+- **FTS workspace scoping** — FTS5 queries include workspace filter
+- **11 workspace isolation tests** — Verify storage boundaries
+
+#### CLI Module Splitting (PR6)
+- **Modular CLI structure** — Split monolithic cli.py into 8 focused modules
+- **Improved maintainability** — Each command group in separate file
+- **Same command interface** — No breaking changes to CLI usage
+
+#### Documentation
+- **CLI_REFERENCE.md** — Complete CLI command documentation
+- **AGENT_HANDOFF_WORKFLOW.md** — Multi-agent collaboration guide
+- **Architecture Decision Records** — ADR-001 through ADR-005
+
+#### Evidence in Artifacts
+- **Research brief evidence** — Markdown now shows verbatim quotes from sources
+- **UTF-8 encoding fix** — German characters (ü, ö, ä) render correctly
+
+### Changed
+- **Test suite expanded** — 562 tests (up from 484 in v0.2.0)
+- **Truthful CLI labels** — Labels accurately reflect execution mode and cache status
+- **Artifact encoding** — All artifacts saved with UTF-8 encoding
+
+### Fixed
+- Evidence not appearing in research_brief.md template
+- UnicodeEncodeError on Windows with German text
+
+---
+
 ## [0.2.0] - 2026-01-27
 
 ### Added
@@ -117,10 +152,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Milestone | Key Feature |
 |---------|------|-----------|-------------|
+| 0.2.1 | 2026-01-29 | Hardening | Workspace isolation, CLI split, evidence display |
 | 0.2.0 | 2026-01-27 | M1-M8 | Workspaces, Work/Personal Ops, Deep Links |
 | 0.1.0 | 2025-12-15 | M0-M3 | Core platform, Agent Kernel, LLM integration |
 
 ---
 
+[0.2.1]: https://github.com/your-org/ag-network/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/your-org/ag-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/your-org/ag-network/releases/tag/v0.1.0

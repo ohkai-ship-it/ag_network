@@ -1,10 +1,10 @@
 # AG Network - Autonomous Business Development Agent
 
-**Status**: ✅ **v0.2.0 — M1-M8 Complete**  
+**Status**: ✅ **v0.2.1 — M1-M8 Complete + Hardening**  
 **Package**: `agnetwork`  
-**Documentation**: `CHANGELOG.md`, `COMPLETION_SUMMARY.md`, `PROTOCOL.md`
+**Documentation**: `docs/CLI_REFERENCE.md`, `docs/ARCHITECTURE.md`, `CHANGELOG.md`
 
-**New in v0.2**: Workspaces, Work/Personal Ops skill packs, deep link discovery, OpenAI integration!
+**New in v0.2.1**: Workspace isolation hardening, CLI module split, evidence display in artifacts!
 
 ---
 
@@ -42,41 +42,44 @@ ag validate-run runs/<run_folder>
 ```
 ag_network/
 ├── README.md                      ← This file
-├── COMPLETION_SUMMARY.md          ← v0.1 project summary
-├── M3_COMPLETION_SUMMARY.md       ← LLM tooling summary (NEW)
-├── PROTOCOL.md                    ← Execution log
+├── CHANGELOG.md                   ← Version history
 ├── pyproject.toml                 ← Dependencies
 ├── .github/workflows/ci.yml       ← CI pipeline (ruff + pytest)
 │
+├── docs/                          ← Documentation
+│   ├── CLI_REFERENCE.md           ← Full CLI command reference
+│   ├── ARCHITECTURE.md            ← System architecture
+│   ├── AGENT_HANDOFF_WORKFLOW.md  ← Multi-agent collaboration guide
+│   └── dev/                       ← Development docs & handoff
+│
 ├── src/agnetwork/                 ← Source code
-│   ├── cli.py                     ← CLI commands (8 total)
+│   ├── cli/                       ← CLI module (8 command files)
+│   │   ├── app.py                 ← Typer app & workspace resolution
+│   │   ├── commands_pipeline.py   ← run-pipeline, status, validate-run
+│   │   ├── commands_research.py   ← research, targets, outreach, prep, followup
+│   │   ├── commands_workspace.py  ← workspace create/list/show/doctor, prefs
+│   │   ├── commands_crm.py        ← crm export/import/list/search/stats
+│   │   ├── commands_sequence.py   ← sequence plan/list-templates
+│   │   ├── commands_memory.py     ← memory search/rebuild-index
+│   │   └── commands_skills.py     ← work/personal ops skills
 │   ├── config.py                  ← Configuration + LLMConfig
 │   ├── orchestrator.py            ← Run system & logging
-│   ├── versioning.py              ← Artifact/skill versioning
-│   ├── validate.py                ← Run validation
-│   ├── kernel/                    ← Task/Plan/Executor (M2)
-│   │   ├── models.py              ← TaskSpec, Plan, Step, ExecutionMode
-│   │   ├── executor.py            ← KernelExecutor
-│   │   └── llm_executor.py        ← LLMSkillExecutor (M3)
-│   ├── tools/llm/                 ← LLM integration (M3)
-│   │   ├── adapters/              ← Anthropic, OpenAI, Fake
-│   │   ├── factory.py             ← Role-based routing
-│   │   └── structured.py          ← JSON parse + repair
-│   ├── prompts/                   ← Prompt library (M3)
-│   ├── models/core.py             ← Pydantic models
-│   ├── storage/sqlite.py          ← Database operations
-│   ├── tools/ingest.py            ← Source ingestion
-│   └── skills/                    ← Skill implementations
+│   ├── kernel/                    ← Task/Plan/Executor
+│   ├── tools/llm/                 ← LLM integration (Anthropic, OpenAI, Fake)
+│   ├── storage/                   ← SQLite + workspace-scoped storage
+│   ├── crm/                       ← CRM models, adapters, sequences
+│   ├── workspaces/                ← Workspace registry & context
+│   └── skills/                    ← BD + Work Ops + Personal Ops skills
 │
-├── tests/                         ← Tests (437+ passing)
-└── runs/                          ← Execution artifacts
+├── tests/                         ← Tests (562 passing)
+└── runs/                          ← Execution artifacts (gitignored)
 ```
 
 ---
 
 ## Features
 
-✅ **19 CLI Commands**: BD pipeline, Work Ops, Personal Ops, memory, CRM, workspace, prefs  
+✅ **25+ CLI Commands**: BD pipeline, Work Ops, Personal Ops, memory, CRM, workspace, prefs  
 ✅ **Global --workspace**: Scope any command to a specific workspace  
 ✅ **Execution Modes**: Manual (deterministic) or LLM (AI-assisted)  
 ✅ **LLM Integration**: Anthropic Claude, OpenAI GPT, Fake adapter for testing  
@@ -85,9 +88,9 @@ ag_network/
 ✅ **Artifacts**: Markdown + JSON outputs with version metadata  
 ✅ **Logging**: JSONL worklog + JSON status tracking  
 ✅ **Database**: SQLite for sources & traceability  
-✅ **Workspace Isolation**: Per-workspace database, runs, and preferences  
+✅ **Workspace Isolation**: Per-workspace database, runs, and preferences (enforced by AST tests)  
 ✅ **CI Pipeline**: GitHub Actions for ruff + pytest  
-✅ **Tests**: 454+ passing, 0 lint errors
+✅ **Tests**: 562 passing, 0 lint errors
 
 ---
 
@@ -204,24 +207,23 @@ See [M3_COMPLETION_SUMMARY.md](M3_COMPLETION_SUMMARY.md) for full details on:
 
 | File | Purpose |
 |------|---------|
-| [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md) | Full project overview & results |
-| [PROTOCOL.md](PROTOCOL.md) | Execution log per Master Orchestrator Protocol |
-| [src/agnetwork/cli.py](src/agnetwork/cli.py) | All CLI commands |
+| [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) | Complete CLI command documentation |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture & design |
+| [docs/AGENT_HANDOFF_WORKFLOW.md](docs/AGENT_HANDOFF_WORKFLOW.md) | Multi-agent collaboration guide |
+| [src/agnetwork/cli/](src/agnetwork/cli/) | CLI commands (modular) |
 | [src/agnetwork/orchestrator.py](src/agnetwork/orchestrator.py) | Run system & logging |
-| [src/agnetwork/versioning.py](src/agnetwork/versioning.py) | Artifact versioning (M1) |
-| [src/agnetwork/validate.py](src/agnetwork/validate.py) | Run validation (M1) |
-| [tests/](tests/) | Unit tests (33 passing) |
-
----
-
-## Testing
+| [src/agnetwork/kernel/](src/agnetwork/kernel/) | Task/Plan/Executor |
+| [tests/](tests/) | Unit tests (562 passing) |
 
 ```bash
-# Run all tests (116 passing)
+# Run all tests (562 passing)
 pytest tests/ -v
 
 # Run LLM-specific tests
 pytest tests/test_llm_*.py -v
+
+# Run workspace isolation tests
+pytest tests/test_pr*.py tests/test_workspace_isolation.py -v
 
 # Lint check
 ruff check .
@@ -321,10 +323,10 @@ runs/
 
 ## Questions?
 
-- **How does it work?** → See [PROTOCOL.md](PROTOCOL.md)
-- **What was built?** → See [COMPLETION_SUMMARY.md](COMPLETION_SUMMARY.md)
-- **LLM integration?** → See [M3_COMPLETION_SUMMARY.md](M3_COMPLETION_SUMMARY.md)
-- **Workspaces & Isolation?** → See [M7_IMPLEMENTATION_SUMMARY.md](M7_IMPLEMENTATION_SUMMARY.md)
+- **CLI commands?** → See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)
+- **Architecture?** → See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Multi-agent workflow?** → See [docs/AGENT_HANDOFF_WORKFLOW.md](docs/AGENT_HANDOFF_WORKFLOW.md)
+- **What changed?** → See [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -399,6 +401,6 @@ See [M7_IMPLEMENTATION_SUMMARY.md](M7_IMPLEMENTATION_SUMMARY.md) for complete do
 ---
 
 **Built with Master Orchestrator Protocol** ✅  
-v0.1 + M1-M7 Complete
+v0.2.0 — M1-M8 Complete + Hardening
 
 ---

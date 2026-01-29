@@ -155,7 +155,7 @@ class RunManager:
         md_file = self.run_dir / "artifacts" / f"{artifact_name}.md"
         json_file = self.run_dir / "artifacts" / f"{artifact_name}.json"
 
-        with open(md_file, "w") as f:
+        with open(md_file, "w", encoding="utf-8") as f:
             f.write(markdown_content)
 
         # Inject version metadata into JSON
@@ -166,8 +166,8 @@ class RunManager:
             run_id=self.run_id,
         )
 
-        with open(json_file, "w") as f:
-            json.dump(versioned_data, f, indent=2, default=str)
+        with open(json_file, "w", encoding="utf-8") as f:
+            json.dump(versioned_data, f, indent=2, default=str, ensure_ascii=False)
 
         self.logger.info(f"Saved artifact: {artifact_name}")
 

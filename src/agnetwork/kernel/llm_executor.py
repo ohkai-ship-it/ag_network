@@ -697,8 +697,18 @@ class LLMSkillExecutor:
         for angle in data.get("personalization_angles", []):
             lines.append("")
             lines.append(f"### Angle: {angle.get('name', 'Unknown')}")
-            assumption_tag = " (ASSUMPTION)" if angle.get("is_assumption") else ""
+            assumption_tag = " (ASSUMPTION)" if angle.get("is_assumption") else " ✓"
             lines.append(f"- **Fact**: {angle.get('fact', '')}{assumption_tag}")
+            # M8: Include source_ids if present
+            source_ids = angle.get("source_ids", [])
+            if source_ids:
+                lines.append(f"- **Sources**: {', '.join(source_ids)}")
+            # M8: Include evidence quotes if present
+            evidence = angle.get("evidence", [])
+            for ev in evidence:
+                quote = ev.get("quote", "")
+                src_id = ev.get("source_id", "")
+                lines.append(f"- **Evidence**: \"{quote}\" [{src_id}]")
         return "\n".join(lines)
 
     def _render_target_map_md(self, data: Dict[str, Any]) -> str:

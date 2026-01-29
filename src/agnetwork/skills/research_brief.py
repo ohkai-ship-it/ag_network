@@ -63,7 +63,11 @@ class ResearchBriefSkill:
 
 {% for angle in personalization_angles %}
 ### Angle: {{ angle.name }}
-- **Fact**: {{ angle.fact }} {% if angle.is_assumption %}(ASSUMPTION){% endif %}
+- **Fact**: {{ angle.fact }}{% if angle.is_assumption %} (ASSUMPTION){% else %} ✓{% endif %}
+{% if angle.source_ids %}- **Sources**: {{ angle.source_ids | join(', ') }}{% endif %}
+{% if angle.evidence %}
+{% for ev in angle.evidence %}- **Evidence**: "{{ ev.quote }}" [{{ ev.source_id }}]
+{% endfor %}{% endif %}
 
 {% endfor %}
 """
