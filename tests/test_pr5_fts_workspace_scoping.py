@@ -141,9 +141,7 @@ class TestFTSDefensiveWorkspaceFilter:
         results = db2.search_sources_fts("Important", limit=10)
         assert results == []
 
-    def test_fts_search_succeeds_when_workspace_meta_matches(
-        self, tmp_path: Path
-    ) -> None:
+    def test_fts_search_succeeds_when_workspace_meta_matches(self, tmp_path: Path) -> None:
         """FTS search succeeds when workspace_meta matches workspace_id."""
         from agnetwork.storage.sqlite import SQLiteManager
 
@@ -172,9 +170,7 @@ class TestFTSDefensiveWorkspaceFilter:
 class TestFTSWorkspaceIsolationViaSeparateDBs:
     """PR5: Verify that separate workspace DBs provide complete isolation."""
 
-    def test_separate_workspaces_have_isolated_fts_data(
-        self, tmp_path: Path
-    ) -> None:
+    def test_separate_workspaces_have_isolated_fts_data(self, tmp_path: Path) -> None:
         """Separate workspace DBs contain isolated FTS data."""
         from agnetwork.storage.sqlite import SQLiteManager
 
@@ -230,9 +226,7 @@ class TestFTSWorkspaceIsolationViaSeparateDBs:
 class TestCLIMemorySearchRespectWorkspace:
     """PR5: CLI memory search respects workspace context."""
 
-    def test_cli_memory_search_creates_workspace_scoped_db(
-        self, tmp_path: Path
-    ) -> None:
+    def test_cli_memory_search_creates_workspace_scoped_db(self, tmp_path: Path) -> None:
         """CLI memory search command creates workspace-scoped SQLiteManager.
 
         This test verifies the code path that CLI uses, without needing
@@ -271,7 +265,7 @@ class TestCLIMemorySearchRespectWorkspace:
         """
         import inspect
 
-        from agnetwork.cli import memory_search
+        from agnetwork.cli.commands_memory import memory_search
 
         source = inspect.getsource(memory_search)
 
@@ -308,9 +302,7 @@ class TestMemoryAPIRequiresWorkspace:
 
         assert "requires explicit workspace_id" in str(exc_info.value)
 
-    def test_memory_api_for_workspace_binds_correctly(
-        self, tmp_path: Path
-    ) -> None:
+    def test_memory_api_for_workspace_binds_correctly(self, tmp_path: Path) -> None:
         """MemoryAPI.for_workspace creates properly scoped instance."""
         from agnetwork.storage.memory import MemoryAPI
         from agnetwork.workspaces.context import WorkspaceContext
@@ -340,9 +332,7 @@ class TestFTSForeignRowsLeakPrevention:
     via SQL bypass and proving they don't appear in FTS results.
     """
 
-    def test_foreign_source_rows_not_returned_by_fts(
-        self, tmp_path: Path
-    ) -> None:
+    def test_foreign_source_rows_not_returned_by_fts(self, tmp_path: Path) -> None:
         """Rows inserted via SQL bypass don't appear in FTS search.
 
         Simulates a scenario where an attacker or bug inserts rows
@@ -376,9 +366,7 @@ class TestFTSForeignRowsLeakPrevention:
         results = db2.search_sources_fts("searchable", limit=10)
         assert results == []
 
-    def test_artifacts_foreign_rows_not_returned_by_fts(
-        self, tmp_path: Path
-    ) -> None:
+    def test_artifacts_foreign_rows_not_returned_by_fts(self, tmp_path: Path) -> None:
         """Artifact rows with mismatched workspace_meta don't appear in FTS."""
         from agnetwork.storage.sqlite import SQLiteManager
 

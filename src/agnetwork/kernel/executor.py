@@ -81,7 +81,6 @@ class ExecutionResult:
         self.memory_enabled: bool = False
         self.claims_persisted: int = 0
 
-
     def add_step_result(self, step_id: str, result: SkillResult) -> None:
         """Add a step result."""
         self.step_results[step_id] = result
@@ -137,6 +136,7 @@ class KernelExecutor:
         """Get or create LLM skill executor (lazy initialization)."""
         if self._llm_executor is None:
             from agnetwork.kernel.llm_executor import LLMSkillExecutor
+
             self._llm_executor = LLMSkillExecutor(
                 llm_factory=self.llm_factory,
                 enable_critic=True,
@@ -209,16 +209,14 @@ class KernelExecutor:
 
         # Use provided run manager or create new one
         task_spec = plan.task_spec
-        workspace_ctx = getattr(task_spec, 'workspace_context', None)
+        workspace_ctx = getattr(task_spec, "workspace_context", None)
 
         if run_manager is not None:
             run = run_manager
         else:
             # Create run manager with workspace context if provided
             command = (
-                "pipeline"
-                if task_spec.task_type.value == "pipeline"
-                else task_spec.task_type.value
+                "pipeline" if task_spec.task_type.value == "pipeline" else task_spec.task_type.value
             )
             # M7.1: Pass workspace context to RunManager for scoped runs
             run = RunManager(command=command, slug=task_spec.get_slug(), workspace=workspace_ctx)
@@ -278,7 +276,10 @@ class KernelExecutor:
                 break
 
             step_result = self._execute_step(
-                step, task_spec, run, step_outputs,
+                step,
+                task_spec,
+                run,
+                step_outputs,
                 evidence_bundle=evidence_bundle,
                 memory_enabled=memory_enabled,
             )
@@ -327,9 +328,7 @@ class KernelExecutor:
         # Persist artifacts via RunManager
         if step.status != StepStatus.FAILED:
             artifacts_info = self._persist_artifacts_via_runmanager(step_result, run)
-            result.artifacts_written.extend(
-                [a.filename for a in step_result.artifacts]
-            )
+            result.artifacts_written.extend([a.filename for a in step_result.artifacts])
 
             # M4: Persist claims with evidence links
             claims_count = self._persist_claims(step_result, artifacts_info, run)
@@ -407,9 +406,7 @@ class KernelExecutor:
             )
             return 0
 
-    def _finalize_plan(
-        self, plan: Plan, result: ExecutionResult, run: RunManager
-    ) -> None:
+    def _finalize_plan(self, plan: Plan, result: ExecutionResult, run: RunManager) -> None:
         """Finalize plan execution and update status."""
         if plan.has_failed():
             result.success = False
@@ -468,16 +465,14 @@ class KernelExecutor:
         )
 
         # M8: Get actual workspace name from workspace_context if available
-        workspace_ctx = getattr(task_spec, 'workspace_context', None)
+        workspace_ctx = getattr(task_spec, "workspace_context", None)
         workspace_name = workspace_ctx.name if workspace_ctx else task_spec.workspace.value
 
         # Build context with evidence bundle if available
         context = SkillContext(
             run_id=run.run_id,
             workspace=workspace_name,
-            step_inputs={
-                dep_id: step_outputs.get(dep_id) for dep_id in step.depends_on
-            },
+            step_inputs={dep_id: step_outputs.get(dep_id) for dep_id in step.depends_on},
             evidence_bundle=evidence_bundle,
             memory_enabled=memory_enabled,
         )
@@ -545,9 +540,7 @@ class KernelExecutor:
 
         # Update metrics
         if result.metrics:
-            result.metrics.execution_time_ms = (
-                end_time - start_time
-            ).total_seconds() * 1000
+            result.metrics.execution_time_ms = (end_time - start_time).total_seconds() * 1000
 
         if hasattr(skill, "version"):
             result.skill_version = skill.version

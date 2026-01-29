@@ -72,7 +72,11 @@ def temp_run_dir():
             "company": "TestCompany",
             "personas": [
                 {"title": "VP Sales", "role": "economic_buyer", "hypothesis": "Controls budget"},
-                {"title": "Sales Manager", "role": "champion", "hypothesis": "Advocates internally"},
+                {
+                    "title": "Sales Manager",
+                    "role": "champion",
+                    "hypothesis": "Advocates internally",
+                },
                 {"title": "IT Director", "role": "blocker", "hypothesis": "Has technical concerns"},
             ],
             "meta": {
@@ -201,9 +205,7 @@ class TestPipelineMapper:
         # M6.2: Find activities by metadata.artifact_type (M6.1 changed IDs to hashes)
         # Check outreach activity
         outreach_act = next(
-            (a for a in package.activities
-             if a.metadata.get("artifact_type") == "outreach"),
-            None
+            (a for a in package.activities if a.metadata.get("artifact_type") == "outreach"), None
         )
         assert outreach_act is not None, (
             f"Expected outreach activity, got: "
@@ -215,9 +217,8 @@ class TestPipelineMapper:
 
         # Check meeting_prep activity
         prep_act = next(
-            (a for a in package.activities
-             if a.metadata.get("artifact_type") == "meeting_prep"),
-            None
+            (a for a in package.activities if a.metadata.get("artifact_type") == "meeting_prep"),
+            None,
         )
         assert prep_act is not None, (
             f"Expected meeting_prep activity, got: "

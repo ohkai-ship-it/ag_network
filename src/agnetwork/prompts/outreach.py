@@ -71,7 +71,9 @@ RULES:
         user_parts.append("\nPersonalization angles:")
         for angle in personalization_angles[:3]:
             assumption_tag = " (ASSUMPTION)" if angle.get("is_assumption") else ""
-            user_parts.append(f"  - {angle.get('name', 'Angle')}: {angle.get('fact', '')}{assumption_tag}")
+            user_parts.append(
+                f"  - {angle.get('name', 'Angle')}: {angle.get('fact', '')}{assumption_tag}"
+            )
 
     user_parts.append("\n\nOutput the outreach package as JSON:")
 
@@ -83,7 +85,14 @@ RULES:
 # JSON schema for documentation
 OUTREACH_SCHEMA = {
     "type": "object",
-    "required": ["company", "persona", "channel", "variants", "sequence_steps", "objection_responses"],
+    "required": [
+        "company",
+        "persona",
+        "channel",
+        "variants",
+        "sequence_steps",
+        "objection_responses",
+    ],
     "properties": {
         "company": {"type": "string"},
         "persona": {"type": "string"},

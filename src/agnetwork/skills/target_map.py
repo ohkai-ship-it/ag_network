@@ -110,10 +110,7 @@ class TargetMapSkill:
         claims = []
         for p in personas:
             source_ids = p.get("source_ids", [])
-            evidence = [
-                SourceRef(source_id=sid, source_type="url")
-                for sid in source_ids
-            ]
+            evidence = [SourceRef(source_id=sid, source_type="url") for sid in source_ids]
             claims.append(
                 Claim(
                     text=p["hypothesis"],

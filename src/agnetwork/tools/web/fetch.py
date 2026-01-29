@@ -141,7 +141,7 @@ def fetch_url(
 
         # Wait before retry (exponential backoff)
         if attempt < max_retries - 1:
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
 
     # All retries exhausted
     return FetchResult(

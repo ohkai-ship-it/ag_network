@@ -96,9 +96,7 @@ class FileCRMAdapter(BaseCRMAdapter):
         """Search accounts by name or domain."""
         return self.storage.search_accounts(query, limit=limit)
 
-    def list_contacts(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Contact]:
+    def list_contacts(self, account_id: Optional[str] = None, limit: int = 100) -> List[Contact]:
         """List contacts from storage."""
         return self.storage.list_contacts(account_id=account_id, limit=limit)
 
@@ -106,9 +104,7 @@ class FileCRMAdapter(BaseCRMAdapter):
         """Search contacts by name, email, or title."""
         return self.storage.search_contacts(query, limit=limit)
 
-    def list_activities(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Activity]:
+    def list_activities(self, account_id: Optional[str] = None, limit: int = 100) -> List[Activity]:
         """List activities from storage."""
         return self.storage.list_activities(account_id=account_id, limit=limit)
 
@@ -462,7 +458,9 @@ class FileCRMAdapter(BaseCRMAdapter):
         if isinstance(external_refs, str):
             external_refs = json.loads(external_refs) if external_refs else []
             external_refs = [ExternalRef(**ref) for ref in external_refs]
-        elif isinstance(external_refs, list) and external_refs and isinstance(external_refs[0], dict):
+        elif (
+            isinstance(external_refs, list) and external_refs and isinstance(external_refs[0], dict)
+        ):
             external_refs = [ExternalRef(**ref) for ref in external_refs]
 
         metadata = data.get("metadata", {})
@@ -494,7 +492,9 @@ class FileCRMAdapter(BaseCRMAdapter):
         if isinstance(external_refs, str):
             external_refs = json.loads(external_refs) if external_refs else []
             external_refs = [ExternalRef(**ref) for ref in external_refs]
-        elif isinstance(external_refs, list) and external_refs and isinstance(external_refs[0], dict):
+        elif (
+            isinstance(external_refs, list) and external_refs and isinstance(external_refs[0], dict)
+        ):
             external_refs = [ExternalRef(**ref) for ref in external_refs]
 
         metadata = data.get("metadata", {})
@@ -535,7 +535,9 @@ class FileCRMAdapter(BaseCRMAdapter):
         if isinstance(external_refs, str):
             external_refs = json.loads(external_refs) if external_refs else []
             external_refs = [ExternalRef(**ref) for ref in external_refs]
-        elif isinstance(external_refs, list) and external_refs and isinstance(external_refs[0], dict):
+        elif (
+            isinstance(external_refs, list) and external_refs and isinstance(external_refs[0], dict)
+        ):
             external_refs = [ExternalRef(**ref) for ref in external_refs]
 
         metadata = data.get("metadata", {})
@@ -562,7 +564,9 @@ class FileCRMAdapter(BaseCRMAdapter):
             direction=direction,
             occurred_at=self._parse_datetime(data.get("occurred_at")),
             is_planned=self._parse_bool(data.get("is_planned", False)),
-            scheduled_for=self._parse_datetime(data.get("scheduled_for")) if data.get("scheduled_for") else None,
+            scheduled_for=self._parse_datetime(data.get("scheduled_for"))
+            if data.get("scheduled_for")
+            else None,
             sequence_step=int(data["sequence_step"]) if data.get("sequence_step") else None,
             sequence_name=data.get("sequence_name"),
             run_id=data.get("run_id"),

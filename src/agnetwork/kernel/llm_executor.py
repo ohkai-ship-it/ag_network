@@ -106,6 +106,7 @@ class LLMSkillExecutor:
             SkillResult with artifacts and claims
         """
         import logging
+
         logger = logging.getLogger(__name__)
 
         company = inputs.get("company", "Unknown")
@@ -116,18 +117,24 @@ class LLMSkillExecutor:
         sources = inputs.get("sources", [])
 
         # M8: Load source content from evidence bundle if available
-        logger.debug(f"M8: sources={len(sources)}, evidence_bundle={context.evidence_bundle is not None}, memory_enabled={context.memory_enabled}")
+        logger.debug(
+            f"M8: sources={len(sources)}, evidence_bundle={context.evidence_bundle is not None}, memory_enabled={context.memory_enabled}"
+        )
         if not sources and context.evidence_bundle and context.memory_enabled:
             sources = self._load_sources_from_bundle(
                 context.evidence_bundle,
                 inputs.get("source_ids", []),
                 workspace=context.workspace,
             )
-            logger.info(f"M8: Loaded {len(sources)} sources from evidence bundle for research_brief")
+            logger.info(
+                f"M8: Loaded {len(sources)} sources from evidence bundle for research_brief"
+            )
 
         # Build prompt (M8: require evidence when sources are provided)
         require_evidence = bool(sources)
-        logger.info(f"M8: Building prompt with require_evidence={require_evidence}, sources_count={len(sources)}")
+        logger.info(
+            f"M8: Building prompt with require_evidence={require_evidence}, sources_count={len(sources)}"
+        )
 
         system_prompt, user_prompt = build_research_brief_prompt(
             company=company,
@@ -161,7 +168,9 @@ class LLMSkillExecutor:
 
         # Create claims from personalization angles
         claims = self._extract_claims_from_angles(
-            data.personalization_angles if isinstance(data, ResearchBrief) else data.get("personalization_angles", [])
+            data.personalization_angles
+            if isinstance(data, ResearchBrief)
+            else data.get("personalization_angles", [])
         )
 
         # Create output
@@ -550,22 +559,18 @@ class LLMSkillExecutor:
         except Exception as e:
             # Critic is optional - if it fails, return original
             import logging
+
             logging.getLogger(__name__).debug(f"Critic pass failed: {type(e).__name__}: {e}")
             return data
 
-    def _extract_claims_from_angles(
-        self, angles: List[Dict[str, Any]]
-    ) -> List[Claim]:
+    def _extract_claims_from_angles(self, angles: List[Dict[str, Any]]) -> List[Claim]:
         """Extract claims from personalization angles."""
         claims = []
         for angle in angles:
             is_assumption = angle.get("is_assumption", True)
             # Extract evidence from source_ids
             source_ids = angle.get("source_ids", [])
-            evidence = [
-                SourceRef(source_id=sid, source_type="url")
-                for sid in source_ids
-            ]
+            evidence = [SourceRef(source_id=sid, source_type="url") for sid in source_ids]
             claims.append(
                 Claim(
                     text=angle.get("fact", ""),
@@ -575,19 +580,14 @@ class LLMSkillExecutor:
             )
         return claims
 
-    def _extract_claims_from_personas(
-        self, personas: List[Dict[str, Any]]
-    ) -> List[Claim]:
+    def _extract_claims_from_personas(self, personas: List[Dict[str, Any]]) -> List[Claim]:
         """Extract claims from persona hypotheses."""
         claims = []
         for persona in personas:
             is_assumption = persona.get("is_assumption", True)
             # Extract evidence from source_ids
             source_ids = persona.get("source_ids", [])
-            evidence = [
-                SourceRef(source_id=sid, source_type="url")
-                for sid in source_ids
-            ]
+            evidence = [SourceRef(source_id=sid, source_type="url") for sid in source_ids]
             claims.append(
                 Claim(
                     text=persona.get("hypothesis", ""),
@@ -845,13 +845,17 @@ class LLMSkillExecutor:
             for source_id in unique_ids:
                 source_data = db.get_source(source_id)
                 if source_data:
-                    sources.append({
-                        "id": source_id,
-                        "title": source_data.get("title", ""),
-                        "content": source_data.get("content", "")[:4000],  # Limit content size
-                        "url": source_data.get("uri", ""),
-                    })
-                    logger.debug(f"M8: Loaded source {source_id} ({len(source_data.get('content', ''))} chars)")
+                    sources.append(
+                        {
+                            "id": source_id,
+                            "title": source_data.get("title", ""),
+                            "content": source_data.get("content", "")[:4000],  # Limit content size
+                            "url": source_data.get("uri", ""),
+                        }
+                    )
+                    logger.debug(
+                        f"M8: Loaded source {source_id} ({len(source_data.get('content', ''))} chars)"
+                    )
                 else:
                     logger.warning(f"M8: Source not found: {source_id}")
 

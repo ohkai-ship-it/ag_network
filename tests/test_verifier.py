@@ -67,9 +67,7 @@ class TestVerifier:
 
         errors = [i for i in issues if i.severity == IssueSeverity.ERROR]
         assert len(errors) >= 1
-        assert any(
-            i.check == "artifact_refs_exist" and "JSON" in i.message for i in errors
-        )
+        assert any(i.check == "artifact_refs_exist" and "JSON" in i.message for i in errors)
 
     def test_verify_invalid_json(self):
         """Test verification catches invalid JSON."""
@@ -138,10 +136,7 @@ class TestVerifier:
 
         errors = [i for i in issues if i.severity == IssueSeverity.ERROR]
         assert len(errors) >= 1
-        assert any(
-            i.check == "basic_completeness" and "snapshot" in str(i.details)
-            for i in errors
-        )
+        assert any(i.check == "basic_completeness" and "snapshot" in str(i.details) for i in errors)
 
     def test_verify_schema_validates_valid(self):
         """Test schema validation passes for valid Pydantic model."""
@@ -153,15 +148,17 @@ class TestVerifier:
                 ArtifactRef(
                     name="research_brief",
                     kind=ArtifactKind.JSON,
-                    content=json.dumps({
-                        "company": "TestCorp",
-                        "snapshot": "A test company",
-                        "pains": ["pain1"],
-                        "triggers": ["trigger1"],
-                        "competitors": ["competitor1"],
-                        "personalization_angles": [],
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    }),
+                    content=json.dumps(
+                        {
+                            "company": "TestCorp",
+                            "snapshot": "A test company",
+                            "pains": ["pain1"],
+                            "triggers": ["trigger1"],
+                            "competitors": ["competitor1"],
+                            "personalization_angles": [],
+                            "created_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ),
                 ),
             ],
             claims=[],
@@ -181,11 +178,13 @@ class TestVerifier:
                 ArtifactRef(
                     name="research_brief",
                     kind=ArtifactKind.JSON,
-                    content=json.dumps({
-                        "company": "TestCorp",
-                        "snapshot": "A test company",
-                        # Missing required fields: pains, triggers, competitors, personalization_angles
-                    }),
+                    content=json.dumps(
+                        {
+                            "company": "TestCorp",
+                            "snapshot": "A test company",
+                            # Missing required fields: pains, triggers, competitors, personalization_angles
+                        }
+                    ),
                 ),
             ],
             claims=[],

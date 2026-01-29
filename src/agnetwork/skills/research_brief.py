@@ -176,10 +176,7 @@ class ResearchBriefSkill:
             source_ids = angle.get("source_ids", [])
 
             # M5: Convert source_ids strings to SourceRef objects
-            evidence = [
-                SourceRef(source_id=sid, source_type="url")
-                for sid in source_ids
-            ]
+            evidence = [SourceRef(source_id=sid, source_type="url") for sid in source_ids]
 
             claim = Claim(
                 text=fact,

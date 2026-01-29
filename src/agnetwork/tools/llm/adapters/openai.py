@@ -104,10 +104,7 @@ class OpenAIAdapter:
         max_tokens = request.max_tokens or self.DEFAULT_MAX_TOKENS
 
         # Convert messages (OpenAI uses same format)
-        messages = [
-            {"role": msg.role, "content": msg.content}
-            for msg in request.messages
-        ]
+        messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
 
         # Build request kwargs
         kwargs: Dict[str, Any] = {

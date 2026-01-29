@@ -119,13 +119,19 @@ GENERAL RULES:
         for i, source in enumerate(sources, 1):
             source_id = source.get("id", f"src_{i}")
             title = source.get("title", f"Source {i}")
-            content = source.get("content", "")[:2000]  # M8: Increased to 2000 chars for evidence extraction
+            content = source.get("content", "")[
+                :2000
+            ]  # M8: Increased to 2000 chars for evidence extraction
             user_parts.append(f"\n[{source_id}] {title}:\n{content}")
 
         if require_evidence:
-            user_parts.append("\n\nIMPORTANT: For non-assumption facts, include verbatim quotes from sources in the 'evidence' array.")
+            user_parts.append(
+                "\n\nIMPORTANT: For non-assumption facts, include verbatim quotes from sources in the 'evidence' array."
+            )
     else:
-        user_parts.append("\n\nNo sources provided - ALL insights will be assumptions. Set is_assumption: true and source_ids: [] for all angles.")
+        user_parts.append(
+            "\n\nNo sources provided - ALL insights will be assumptions. Set is_assumption: true and source_ids: [] for all angles."
+        )
 
     user_parts.append("\n\nOutput the research brief as JSON:")
 
@@ -137,7 +143,14 @@ GENERAL RULES:
 # JSON schema for documentation (M8: Updated with evidence)
 RESEARCH_BRIEF_SCHEMA = {
     "type": "object",
-    "required": ["company", "snapshot", "pains", "triggers", "competitors", "personalization_angles"],
+    "required": [
+        "company",
+        "snapshot",
+        "pains",
+        "triggers",
+        "competitors",
+        "personalization_angles",
+    ],
     "properties": {
         "company": {"type": "string"},
         "snapshot": {"type": "string"},

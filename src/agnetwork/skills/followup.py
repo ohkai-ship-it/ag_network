@@ -94,7 +94,7 @@ class FollowupSkill:
         ]
 
         crm_notes = f"""Company: {company}
-Meeting Date: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
+Meeting Date: {datetime.now(timezone.utc).strftime("%Y-%m-%d")}
 Status: Active Opportunity
 Next Action: Send follow-up email
 Notes: {notes}"""

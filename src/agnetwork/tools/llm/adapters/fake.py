@@ -201,60 +201,88 @@ class FakeAdapter:
 
 
 # Preset responses for common test scenarios
-FAKE_RESEARCH_BRIEF = json.dumps({
-    "company": "TestCorp",
-    "snapshot": "A technology company focused on AI solutions",
-    "pains": ["Scaling challenges", "Customer acquisition costs"],
-    "triggers": ["New funding round", "Leadership change"],
-    "competitors": ["CompetitorA", "CompetitorB"],
-    "personalization_angles": [
-        {"name": "Growth Focus", "fact": "TestCorp recently raised Series B", "is_assumption": False},
-        {"name": "Tech Investment", "fact": "TestCorp is investing in AI", "is_assumption": True},
-    ],
-})
+FAKE_RESEARCH_BRIEF = json.dumps(
+    {
+        "company": "TestCorp",
+        "snapshot": "A technology company focused on AI solutions",
+        "pains": ["Scaling challenges", "Customer acquisition costs"],
+        "triggers": ["New funding round", "Leadership change"],
+        "competitors": ["CompetitorA", "CompetitorB"],
+        "personalization_angles": [
+            {
+                "name": "Growth Focus",
+                "fact": "TestCorp recently raised Series B",
+                "is_assumption": False,
+            },
+            {
+                "name": "Tech Investment",
+                "fact": "TestCorp is investing in AI",
+                "is_assumption": True,
+            },
+        ],
+    }
+)
 
-FAKE_TARGET_MAP = json.dumps({
-    "company": "TestCorp",
-    "personas": [
-        {"title": "VP Sales", "role": "economic_buyer", "hypothesis": "Controls budget", "is_assumption": True},
-        {"title": "CTO", "role": "technical_evaluator", "hypothesis": "Evaluates tech fit", "is_assumption": True},
-    ],
-})
+FAKE_TARGET_MAP = json.dumps(
+    {
+        "company": "TestCorp",
+        "personas": [
+            {
+                "title": "VP Sales",
+                "role": "economic_buyer",
+                "hypothesis": "Controls budget",
+                "is_assumption": True,
+            },
+            {
+                "title": "CTO",
+                "role": "technical_evaluator",
+                "hypothesis": "Evaluates tech fit",
+                "is_assumption": True,
+            },
+        ],
+    }
+)
 
-FAKE_OUTREACH = json.dumps({
-    "company": "TestCorp",
-    "persona": "VP Sales",
-    "channel": "email",
-    "variants": [
-        {
-            "channel": "email",
-            "subject_or_hook": "Partnership opportunity with TestCorp",
-            "body": "Hi VP Sales,\n\nI noticed TestCorp's impressive growth...",
-            "personalization_notes": "Reference recent funding announcement",
-        }
-    ],
-    "sequence_steps": ["Initial outreach", "Follow-up Day 3", "Value share Day 7"],
-    "objection_responses": {"no_budget": "Let me share ROI data..."},
-})
+FAKE_OUTREACH = json.dumps(
+    {
+        "company": "TestCorp",
+        "persona": "VP Sales",
+        "channel": "email",
+        "variants": [
+            {
+                "channel": "email",
+                "subject_or_hook": "Partnership opportunity with TestCorp",
+                "body": "Hi VP Sales,\n\nI noticed TestCorp's impressive growth...",
+                "personalization_notes": "Reference recent funding announcement",
+            }
+        ],
+        "sequence_steps": ["Initial outreach", "Follow-up Day 3", "Value share Day 7"],
+        "objection_responses": {"no_budget": "Let me share ROI data..."},
+    }
+)
 
-FAKE_MEETING_PREP = json.dumps({
-    "company": "TestCorp",
-    "meeting_type": "discovery",
-    "agenda": ["Introductions", "Problem discovery", "Solution overview", "Next steps"],
-    "questions": ["What are your priorities?", "How do you currently solve this?"],
-    "stakeholder_map": {"VP Sales": "Economic buyer"},
-    "listen_for_signals": ["Budget timing", "Competitor mentions"],
-    "close_plan": "Propose demo if interest confirmed",
-})
+FAKE_MEETING_PREP = json.dumps(
+    {
+        "company": "TestCorp",
+        "meeting_type": "discovery",
+        "agenda": ["Introductions", "Problem discovery", "Solution overview", "Next steps"],
+        "questions": ["What are your priorities?", "How do you currently solve this?"],
+        "stakeholder_map": {"VP Sales": "Economic buyer"},
+        "listen_for_signals": ["Budget timing", "Competitor mentions"],
+        "close_plan": "Propose demo if interest confirmed",
+    }
+)
 
-FAKE_FOLLOWUP = json.dumps({
-    "company": "TestCorp",
-    "meeting_date": "2026-01-26T12:00:00Z",
-    "summary": "Good initial meeting with TestCorp",
-    "next_steps": ["Send summary", "Schedule demo", "Follow up in 1 week"],
-    "tasks": [{"task": "Send summary", "owner": "sales", "due": "Today"}],
-    "crm_notes": "Active opportunity, strong interest",
-})
+FAKE_FOLLOWUP = json.dumps(
+    {
+        "company": "TestCorp",
+        "meeting_date": "2026-01-26T12:00:00Z",
+        "summary": "Good initial meeting with TestCorp",
+        "next_steps": ["Send summary", "Schedule demo", "Follow up in 1 week"],
+        "tasks": [{"task": "Send summary", "owner": "sales", "due": "Today"}],
+        "crm_notes": "Active opportunity, strong interest",
+    }
+)
 
 # Invalid JSON for repair testing
 FAKE_INVALID_JSON = "```json\n{this is not valid json}\n```"

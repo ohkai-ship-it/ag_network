@@ -217,29 +217,35 @@ def parse_or_repair_json(
 
         except ValueError as e:
             # JSON extraction failed
-            last_errors.append({
-                "attempt": attempt,
-                "error_type": "extraction",
-                "message": str(e),
-            })
+            last_errors.append(
+                {
+                    "attempt": attempt,
+                    "error_type": "extraction",
+                    "message": str(e),
+                }
+            )
 
         except json.JSONDecodeError as e:
             # JSON parsing failed
-            last_errors.append({
-                "attempt": attempt,
-                "error_type": "json_parse",
-                "message": str(e),
-                "line": e.lineno,
-                "column": e.colno,
-            })
+            last_errors.append(
+                {
+                    "attempt": attempt,
+                    "error_type": "json_parse",
+                    "message": str(e),
+                    "line": e.lineno,
+                    "column": e.colno,
+                }
+            )
 
         except ValidationError as e:
             # Pydantic validation failed
-            last_errors.append({
-                "attempt": attempt,
-                "error_type": "validation",
-                "errors": e.errors(),
-            })
+            last_errors.append(
+                {
+                    "attempt": attempt,
+                    "error_type": "validation",
+                    "errors": e.errors(),
+                }
+            )
 
         # If we haven't exceeded repair attempts, try to repair
         if attempt < max_repairs:
@@ -255,11 +261,13 @@ def parse_or_repair_json(
                 )
             except LLMAdapterError as e:
                 # LLM call failed, append error and continue
-                last_errors.append({
-                    "attempt": attempt,
-                    "error_type": "repair_failed",
-                    "message": str(e),
-                })
+                last_errors.append(
+                    {
+                        "attempt": attempt,
+                        "error_type": "repair_failed",
+                        "message": str(e),
+                    }
+                )
                 break
 
     # All attempts failed
@@ -300,7 +308,9 @@ def _repair_json(
     if errors.get("error_type") == "validation":
         error_msg = "Validation errors:\n" + json.dumps(errors.get("errors", []), indent=2)
     else:
-        error_msg = f"{errors.get('error_type', 'unknown')}: {errors.get('message', 'unknown error')}"
+        error_msg = (
+            f"{errors.get('error_type', 'unknown')}: {errors.get('message', 'unknown error')}"
+        )
 
     system_prompt = """You are a JSON repair assistant. Your task is to fix malformed or invalid JSON.
 

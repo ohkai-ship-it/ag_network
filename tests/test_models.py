@@ -1,6 +1,5 @@
 """Tests for data models."""
 
-
 from agnetwork.models.core import OutreachDraft, ResearchBrief, TargetMap
 
 

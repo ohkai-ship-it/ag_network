@@ -152,6 +152,7 @@ class CRMStorage:
 
         # Force garbage collection to release any lingering connections
         import gc
+
         gc.collect()
 
         # Force a checkpoint and close any WAL files
@@ -492,9 +493,7 @@ class CRMStorage:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM crm_accounts WHERE account_id = ?", (account_id,)
-            )
+            cursor.execute("SELECT * FROM crm_accounts WHERE account_id = ?", (account_id,))
             row = cursor.fetchone()
             if row:
                 return self._row_to_account(dict(row))
@@ -512,9 +511,7 @@ class CRMStorage:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM crm_accounts WHERE domain = ?", (domain,)
-            )
+            cursor.execute("SELECT * FROM crm_accounts WHERE domain = ?", (domain,))
             row = cursor.fetchone()
             if row:
                 return self._row_to_account(dict(row))
@@ -635,9 +632,7 @@ class CRMStorage:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM crm_contacts WHERE contact_id = ?", (contact_id,)
-            )
+            cursor.execute("SELECT * FROM crm_contacts WHERE contact_id = ?", (contact_id,))
             row = cursor.fetchone()
             if row:
                 return self._row_to_contact(dict(row))
@@ -655,17 +650,13 @@ class CRMStorage:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM crm_contacts WHERE email = ?", (email,)
-            )
+            cursor.execute("SELECT * FROM crm_contacts WHERE email = ?", (email,))
             row = cursor.fetchone()
             if row:
                 return self._row_to_contact(dict(row))
             return None
 
-    def list_contacts(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Contact]:
+    def list_contacts(self, account_id: Optional[str] = None, limit: int = 100) -> List[Contact]:
         """List contacts, optionally filtered by account.
 
         Args:
@@ -799,9 +790,7 @@ class CRMStorage:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM crm_activities WHERE activity_id = ?", (activity_id,)
-            )
+            cursor.execute("SELECT * FROM crm_activities WHERE activity_id = ?", (activity_id,))
             row = cursor.fetchone()
             if row:
                 return self._row_to_activity(dict(row))
@@ -874,9 +863,7 @@ class CRMStorage:
             occurred_at=datetime.fromisoformat(row["occurred_at"]),
             is_planned=bool(row.get("is_planned")),
             scheduled_for=(
-                datetime.fromisoformat(row["scheduled_for"])
-                if row.get("scheduled_for")
-                else None
+                datetime.fromisoformat(row["scheduled_for"]) if row.get("scheduled_for") else None
             ),
             sequence_step=row.get("sequence_step"),
             sequence_name=row.get("sequence_name"),

@@ -124,8 +124,18 @@ class TestWorklogValidation:
         """Test validation of complete worklog entries."""
         worklog_file = tmp_path / "agent_worklog.jsonl"
         entries = [
-            {"timestamp": "2026-01-25T10:00:00", "phase": "1", "action": "Start", "status": "success"},
-            {"timestamp": "2026-01-25T10:01:00", "phase": "1", "action": "Done", "status": "success"},
+            {
+                "timestamp": "2026-01-25T10:00:00",
+                "phase": "1",
+                "action": "Start",
+                "status": "success",
+            },
+            {
+                "timestamp": "2026-01-25T10:01:00",
+                "phase": "1",
+                "action": "Done",
+                "status": "success",
+            },
         ]
         worklog_file.write_text("\n".join(json.dumps(e) for e in entries))
 

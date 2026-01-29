@@ -66,9 +66,7 @@ class SourceIngestor:
         self.ingested_sources.append(source_data)
         return source_id
 
-    def ingest_file(
-        self, file_path: Path, company: Optional[str] = None
-    ) -> str:
+    def ingest_file(self, file_path: Path, company: Optional[str] = None) -> str:
         """Ingest a file as a source."""
         source_id = f"src_{uuid4().hex[:8]}"
         source_file = self.sources_dir / f"{source_id}.json"

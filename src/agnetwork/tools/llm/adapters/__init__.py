@@ -17,13 +17,17 @@ __all__ = [
     "FakeAdapter",
 ]
 
+
 # Lazy imports for optional providers
 def get_anthropic_adapter():
     """Get AnthropicAdapter (requires anthropic package)."""
     from agnetwork.tools.llm.adapters.anthropic import AnthropicAdapter
+
     return AnthropicAdapter
+
 
 def get_openai_adapter():
     """Get OpenAIAdapter (requires openai package)."""
     from agnetwork.tools.llm.adapters.openai import OpenAIAdapter
+
     return OpenAIAdapter

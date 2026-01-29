@@ -235,28 +235,37 @@ class TestNoConfigRunsDirInWorkspaceCommands:
         import ast
         from pathlib import Path
 
-        cli_path = Path(__file__).parent.parent / "src" / "agnetwork" / "cli.py"
-        source = cli_path.read_text(encoding="utf-8")
-        tree = ast.parse(source, filename=str(cli_path))
+        # PR6: CLI is now a package - check the relevant modules
+        cli_base = Path(__file__).parent.parent / "src" / "agnetwork" / "cli"
+        files_to_check = [
+            cli_base / "commands_pipeline.py",  # status command
+            cli_base / "commands_sequence.py",  # sequence_plan command
+        ]
 
-        # Find the status and sequence_plan function definitions
-        target_functions = {"status", "sequence_plan"}
         violations = []
+        for cli_path in files_to_check:
+            if not cli_path.exists():
+                continue
+            source = cli_path.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(cli_path))
 
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name in target_functions:
-                # Walk the function body looking for config.runs_dir
-                for child in ast.walk(node):
-                    if isinstance(child, ast.Attribute):
-                        # Check for config.runs_dir pattern
-                        if (
-                            child.attr == "runs_dir"
-                            and isinstance(child.value, ast.Name)
-                            and child.value.id == "config"
-                        ):
-                            violations.append(
-                                f"{node.name}:{child.lineno} uses config.runs_dir"
-                            )
+            # Find the status and sequence_plan function definitions
+            target_functions = {"status", "sequence_plan"}
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name in target_functions:
+                    # Walk the function body looking for config.runs_dir
+                    for child in ast.walk(node):
+                        if isinstance(child, ast.Attribute):
+                            # Check for config.runs_dir pattern
+                            if (
+                                child.attr == "runs_dir"
+                                and isinstance(child.value, ast.Name)
+                                and child.value.id == "config"
+                            ):
+                                violations.append(
+                                    f"{cli_path.name}:{node.name}:{child.lineno} uses config.runs_dir"
+                                )
 
         if violations:
             pytest.fail(

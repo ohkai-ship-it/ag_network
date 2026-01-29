@@ -24,6 +24,7 @@ def __getattr__(name):
     """Lazy imports for registry components."""
     if name in ("CRMAdapterRegistry", "CRMAdapterFactory"):
         from agnetwork.crm.registry import CRMAdapterFactory, CRMAdapterRegistry
+
         if name == "CRMAdapterRegistry":
             return CRMAdapterRegistry
         return CRMAdapterFactory

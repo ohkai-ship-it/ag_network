@@ -248,7 +248,7 @@ class PipelineMapper:
 
         personas = target_map.get("personas", [])
         for i, persona in enumerate(personas):
-            title = persona.get("title", f"Contact {i+1}")
+            title = persona.get("title", f"Contact {i + 1}")
             role = persona.get("role", "")
             hypothesis = persona.get("hypothesis", "")
             email = persona.get("email")  # May be present in enriched data
@@ -365,11 +365,15 @@ class PipelineMapper:
         activity_type = ActivityType.EMAIL if channel == "email" else ActivityType.LINKEDIN
 
         return Activity(
-            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=activity_type.value),
+            activity_id=make_activity_id(
+                run_id=run_id, artifact_ref=artifact_ref, activity_type=activity_type.value
+            ),
             account_id=account_id,
             contact_id=contact_id,
             activity_type=activity_type,
-            subject=outreach.get("subject_or_hook", f"Outreach to {outreach.get('company', 'company')}"),
+            subject=outreach.get(
+                "subject_or_hook", f"Outreach to {outreach.get('company', 'company')}"
+            ),
             body=outreach.get("body", ""),
             direction=ActivityDirection.OUTBOUND,
             run_id=run_id,
@@ -406,7 +410,9 @@ class PipelineMapper:
             body_parts.append("## Questions\n" + "\n".join(f"- {q}" for q in questions))
 
         return Activity(
-            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.NOTE.value),
+            activity_id=make_activity_id(
+                run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.NOTE.value
+            ),
             account_id=account_id,
             contact_id=contact_id,
             activity_type=ActivityType.NOTE,
@@ -441,12 +447,17 @@ class PipelineMapper:
         if next_steps:
             body_parts.append("## Next Steps\n" + "\n".join(f"- {step}" for step in next_steps))
         if tasks:
-            body_parts.append("## Tasks\n" + "\n".join(
-                f"- {t.get('task', '')} (Owner: {t.get('owner', 'TBD')})" for t in tasks
-            ))
+            body_parts.append(
+                "## Tasks\n"
+                + "\n".join(
+                    f"- {t.get('task', '')} (Owner: {t.get('owner', 'TBD')})" for t in tasks
+                )
+            )
 
         return Activity(
-            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.EMAIL.value),
+            activity_id=make_activity_id(
+                run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.EMAIL.value
+            ),
             account_id=account_id,
             contact_id=contact_id,
             activity_type=ActivityType.EMAIL,
@@ -484,12 +495,15 @@ class PipelineMapper:
         if triggers:
             body_parts.append("## Triggers\n" + "\n".join(f"- {t}" for t in triggers))
         if angles:
-            body_parts.append("## Personalization Angles\n" + "\n".join(
-                f"- {a.get('name', '')}: {a.get('fact', '')}" for a in angles
-            ))
+            body_parts.append(
+                "## Personalization Angles\n"
+                + "\n".join(f"- {a.get('name', '')}: {a.get('fact', '')}" for a in angles)
+            )
 
         return Activity(
-            activity_id=make_activity_id(run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.NOTE.value),
+            activity_id=make_activity_id(
+                run_id=run_id, artifact_ref=artifact_ref, activity_type=ActivityType.NOTE.value
+            ),
             account_id=account_id,
             contact_id=None,  # Research is at account level
             activity_type=ActivityType.NOTE,
@@ -522,24 +536,47 @@ class PipelineMapper:
         primary_contact_id = contacts[0].contact_id if contacts else None
 
         if "outreach" in artifacts:
-            activities.append(self._activity_from_outreach(
-                artifacts["outreach"], account_id, primary_contact_id, run_id, run_dir, all_source_ids
-            ))
+            activities.append(
+                self._activity_from_outreach(
+                    artifacts["outreach"],
+                    account_id,
+                    primary_contact_id,
+                    run_id,
+                    run_dir,
+                    all_source_ids,
+                )
+            )
 
         if "meeting_prep" in artifacts:
-            activities.append(self._activity_from_meeting_prep(
-                artifacts["meeting_prep"], account_id, primary_contact_id, run_id, run_dir, all_source_ids
-            ))
+            activities.append(
+                self._activity_from_meeting_prep(
+                    artifacts["meeting_prep"],
+                    account_id,
+                    primary_contact_id,
+                    run_id,
+                    run_dir,
+                    all_source_ids,
+                )
+            )
 
         if "followup" in artifacts:
-            activities.append(self._activity_from_followup(
-                artifacts["followup"], account_id, primary_contact_id, run_id, run_dir, all_source_ids
-            ))
+            activities.append(
+                self._activity_from_followup(
+                    artifacts["followup"],
+                    account_id,
+                    primary_contact_id,
+                    run_id,
+                    run_dir,
+                    all_source_ids,
+                )
+            )
 
         if "research_brief" in artifacts:
-            activities.append(self._activity_from_research_brief(
-                artifacts["research_brief"], account_id, run_id, run_dir, all_source_ids
-            ))
+            activities.append(
+                self._activity_from_research_brief(
+                    artifacts["research_brief"], account_id, run_id, run_dir, all_source_ids
+                )
+            )
 
         return activities
 

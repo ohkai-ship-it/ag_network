@@ -105,7 +105,9 @@ Would you be open to a brief conversation to explore how we might help {company}
 
 Best regards"""
             hook = None
-            personalization_notes = f"Research {company}'s recent announcements for personalization."
+            personalization_notes = (
+                f"Research {company}'s recent announcements for personalization."
+            )
         else:  # LinkedIn
             subject = None
             hook = f"Saw {company}'s impressive growth - congrats!"

@@ -114,10 +114,7 @@ class SequencePlan:
                 variables=self.metadata.get("variables", {}),
             )
 
-            activity_type = (
-                ActivityType.EMAIL if self.channel == "email"
-                else ActivityType.LINKEDIN
-            )
+            activity_type = ActivityType.EMAIL if self.channel == "email" else ActivityType.LINKEDIN
 
             activities.append(
                 Activity(
@@ -220,10 +217,7 @@ class SequenceTemplateLoader:
 
         steps = []
         channel = template.get("channel", "email")
-        activity_type = (
-            ActivityType.LINKEDIN if channel == "linkedin"
-            else ActivityType.EMAIL
-        )
+        activity_type = ActivityType.LINKEDIN if channel == "linkedin" else ActivityType.EMAIL
 
         for step_data in template.get("steps", []):
             steps.append(
@@ -487,10 +481,7 @@ class SequenceBuilder:
             List of SequenceStep objects
         """
         steps = []
-        activity_type = (
-            ActivityType.LINKEDIN if channel == "linkedin"
-            else ActivityType.EMAIL
-        )
+        activity_type = ActivityType.LINKEDIN if channel == "linkedin" else ActivityType.EMAIL
 
         # Parse step descriptions like "Initial outreach (Day 0)"
         day_patterns = {
@@ -515,7 +506,7 @@ class SequenceBuilder:
                     step_number=i + 1,
                     day_offset=day_offset,
                     activity_type=activity_type,
-                    subject_template=f"Step {i+1}: {{company}}",
+                    subject_template=f"Step {i + 1}: {{company}}",
                     body_template=f"[{step_desc}]\n\nHi {{persona}},\n\n[Content for this step]",
                     notes=step_desc,
                 )

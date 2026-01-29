@@ -98,6 +98,7 @@ COMPLEX_HTML = b"""
 # Tests: HTML Extraction (clean.py)
 # =============================================================================
 
+
 class TestExtractText:
     """Tests for the extract_text() function."""
 
@@ -166,11 +167,7 @@ class TestCleanResult:
     def test_is_empty_property(self):
         """Should correctly check if text is empty."""
         empty = CleanResult(
-            text="   ",
-            title="Test",
-            content_type="text/html",
-            method="test",
-            char_count=3
+            text="   ", title="Test", content_type="text/html", method="test", char_count=3
         )
         assert empty.is_empty is True
 
@@ -179,7 +176,7 @@ class TestCleanResult:
             title="Test",
             content_type="text/html",
             method="test",
-            char_count=12
+            char_count=12,
         )
         assert non_empty.is_empty is False
 
@@ -187,6 +184,7 @@ class TestCleanResult:
 # =============================================================================
 # Tests: Fetch Tool (fetch.py)
 # =============================================================================
+
 
 class TestComputeHash:
     """Tests for the _compute_hash() function."""
@@ -223,7 +221,7 @@ class TestFetchResult:
             content_bytes=b"test",
             fetched_at=datetime(2025, 1, 26, 12, 0, 0, tzinfo=timezone.utc),
             content_hash="abc123",
-            error=None
+            error=None,
         )
         assert success.is_success is True
 
@@ -235,7 +233,7 @@ class TestFetchResult:
             content_bytes=b"",
             fetched_at=datetime.now(timezone.utc),
             content_hash="",
-            error="HTTP 404"
+            error="HTTP 404",
         )
         assert failure.is_success is False
 
@@ -249,7 +247,7 @@ class TestFetchResult:
             content_bytes=b"<html>Test</html>",
             fetched_at=datetime.now(timezone.utc),
             content_hash="abc123",
-            error=None
+            error=None,
         )
         assert html.is_html is True
 
@@ -261,7 +259,7 @@ class TestFetchResult:
             content_bytes=b'{"key": "value"}',
             fetched_at=datetime.now(timezone.utc),
             content_hash="abc123",
-            error=None
+            error=None,
         )
         assert non_html.is_html is False
 
@@ -336,6 +334,7 @@ class TestFetchUrls:
 # Tests: Source Capture (capture.py)
 # =============================================================================
 
+
 class TestCapturedSource:
     """Tests for CapturedSource dataclass."""
 
@@ -354,7 +353,7 @@ class TestCapturedSource:
             error=None,
             raw_path="sources/test__raw.html",
             clean_path="sources/test__clean.txt",
-            meta_path="sources/test__meta.json"
+            meta_path="sources/test__meta.json",
         )
         assert success.is_success is True
 
@@ -371,7 +370,7 @@ class TestCapturedSource:
             error="HTTP 404",
             raw_path=None,
             clean_path=None,
-            meta_path=None
+            meta_path=None,
         )
         assert failure.is_success is False
 
@@ -434,8 +433,7 @@ class TestCaptureSourcesForRun:
             mock_client.return_value = mock_instance
 
             sources = capture_sources_for_run(
-                sources_dir=sources_dir,
-                urls=["https://example.com/page"]
+                sources_dir=sources_dir, urls=["https://example.com/page"]
             )
 
         assert len(sources) == 1
@@ -464,6 +462,7 @@ class TestCaptureSourcesForRun:
 # =============================================================================
 # Tests: SQLite Integration
 # =============================================================================
+
 
 class TestSQLiteSourceUpsert:
     """Tests for SQLite source storage with content_hash deduplication."""
@@ -568,6 +567,7 @@ class TestSQLiteSourceUpsert:
 # Tests: Edge Cases
 # =============================================================================
 
+
 class TestEdgeCases:
     """Edge case and error handling tests."""
 
@@ -599,7 +599,7 @@ class TestEdgeCases:
             content_bytes=b"\x89PNG\r\n\x1a\n",  # PNG magic bytes
             fetched_at=datetime.now(timezone.utc),
             content_hash="abc123",
-            error=None
+            error=None,
         )
         assert result.is_success is True
         assert result.is_html is False

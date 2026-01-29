@@ -213,7 +213,9 @@ AGGRESSIVE_POLICY = RequestPolicy(
 class ConnectorError(Exception):
     """Base exception for connector errors."""
 
-    def __init__(self, message: str, connector_name: str = "", details: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, message: str, connector_name: str = "", details: Optional[Dict[str, Any]] = None
+    ):
         self.connector_name = connector_name
         self.details = details or {}
         super().__init__(message)

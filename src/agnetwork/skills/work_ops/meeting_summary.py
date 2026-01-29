@@ -186,7 +186,9 @@ class MeetingSummarySkill:
 
                     action_items.append({"owner": owner, "task": task, "due_date": due_date})
                 else:
-                    action_items.append({"owner": "Unassigned", "task": action_text, "due_date": None})
+                    action_items.append(
+                        {"owner": "Unassigned", "task": action_text, "due_date": None}
+                    )
             elif line.startswith("-"):
                 discussion_points.append(line[1:].strip())
             else:

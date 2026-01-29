@@ -85,9 +85,7 @@ class AnthropicAdapter:
             )
         return self._client
 
-    def _build_request_kwargs(
-        self, request: LLMRequest
-    ) -> Tuple[Dict[str, Any], str | None]:
+    def _build_request_kwargs(self, request: LLMRequest) -> Tuple[Dict[str, Any], str | None]:
         """Build Anthropic-specific request kwargs.
 
         Returns:
@@ -103,10 +101,12 @@ class AnthropicAdapter:
             if msg.role == "system":
                 system_content = msg.content
             else:
-                messages.append({
-                    "role": msg.role,
-                    "content": msg.content,
-                })
+                messages.append(
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                    }
+                )
 
         kwargs: Dict[str, Any] = {
             "model": model,

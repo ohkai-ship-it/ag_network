@@ -41,7 +41,8 @@ jobs:
       - name: Verify no unscoped() in src/
         run: |
           # Quick grep check as backup to AST tests
-          if grep -r "\.unscoped(" src/agnetwork/*.py src/agnetwork/**/*.py 2>/dev/null | grep -v "def unscoped" | grep -v "# "; then
+          # Look for .unscoped( calls that are NOT in def statements or comments
+          if grep -rn "\.unscoped(" src/agnetwork --include="*.py" | grep -v "def unscoped" | grep -v "#" | grep -v '"""' | grep -v "'''"; then
             echo "ERROR: Found unscoped() calls in src/"
             exit 1
           fi

@@ -72,9 +72,7 @@ class LLMConfig(BaseModel):
         """
         enabled = os.environ.get("AG_LLM_ENABLED", "0") == "1"
         default_provider = os.environ.get("AG_LLM_DEFAULT_PROVIDER", "anthropic")
-        default_model = os.environ.get(
-            "AG_LLM_DEFAULT_MODEL", "claude-sonnet-4-20250514"
-        )
+        default_model = os.environ.get("AG_LLM_DEFAULT_MODEL", "claude-sonnet-4-20250514")
         temperature = float(os.environ.get("AG_LLM_TEMPERATURE", "0.7"))
         max_tokens = int(os.environ.get("AG_LLM_MAX_TOKENS", "4096"))
         timeout_s = int(os.environ.get("AG_LLM_TIMEOUT_S", "60"))
@@ -228,6 +226,7 @@ class LLMFactory:
         if provider == "anthropic":
             try:
                 from agnetwork.tools.llm.adapters.anthropic import AnthropicAdapter
+
                 return AnthropicAdapter(**kwargs)
             except ImportError:
                 raise LLMAdapterError(
@@ -238,6 +237,7 @@ class LLMFactory:
         if provider == "openai":
             try:
                 from agnetwork.tools.llm.adapters.openai import OpenAIAdapter
+
                 return OpenAIAdapter(**kwargs)
             except ImportError:
                 raise LLMAdapterError(

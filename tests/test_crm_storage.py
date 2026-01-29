@@ -69,10 +69,12 @@ class TestCRMStorageAccounts:
     def test_list_accounts(self, temp_db):
         """Can list all accounts."""
         for i in range(3):
-            temp_db.insert_account(Account(
-                account_id=f"acc_list_{i}",
-                name=f"Company {i}",
-            ))
+            temp_db.insert_account(
+                Account(
+                    account_id=f"acc_list_{i}",
+                    name=f"Company {i}",
+                )
+            )
 
         accounts = temp_db.list_accounts()
         assert len(accounts) == 3
@@ -138,15 +140,15 @@ class TestCRMStorageContacts:
     def test_list_contacts_by_account(self, temp_db):
         """Can list contacts filtered by account."""
         # Create contacts for different accounts
-        temp_db.insert_contact(Contact(
-            contact_id="con_a1", account_id="acc_a", full_name="Person A1"
-        ))
-        temp_db.insert_contact(Contact(
-            contact_id="con_a2", account_id="acc_a", full_name="Person A2"
-        ))
-        temp_db.insert_contact(Contact(
-            contact_id="con_b1", account_id="acc_b", full_name="Person B1"
-        ))
+        temp_db.insert_contact(
+            Contact(contact_id="con_a1", account_id="acc_a", full_name="Person A1")
+        )
+        temp_db.insert_contact(
+            Contact(contact_id="con_a2", account_id="acc_a", full_name="Person A2")
+        )
+        temp_db.insert_contact(
+            Contact(contact_id="con_b1", account_id="acc_b", full_name="Person B1")
+        )
 
         contacts_a = temp_db.list_contacts(account_id="acc_a")
         assert len(contacts_a) == 2
@@ -156,12 +158,12 @@ class TestCRMStorageContacts:
 
     def test_search_contacts(self, temp_db):
         """Can search contacts by name or title."""
-        temp_db.insert_contact(Contact(
-            contact_id="con_s1", full_name="Alice VP", role_title="VP Engineering"
-        ))
-        temp_db.insert_contact(Contact(
-            contact_id="con_s2", full_name="Bob Manager", role_title="Sales Manager"
-        ))
+        temp_db.insert_contact(
+            Contact(contact_id="con_s1", full_name="Alice VP", role_title="VP Engineering")
+        )
+        temp_db.insert_contact(
+            Contact(contact_id="con_s2", full_name="Bob Manager", role_title="Sales Manager")
+        )
 
         results = temp_db.search_contacts("VP")
         assert len(results) >= 1
@@ -206,20 +208,24 @@ class TestCRMStorageActivities:
 
     def test_list_activities_by_run(self, temp_db):
         """Can list activities filtered by run_id."""
-        temp_db.insert_activity(Activity(
-            activity_id="act_r1",
-            account_id="acc_test",
-            activity_type=ActivityType.EMAIL,
-            subject="Run 1 Activity",
-            run_id="run_001",
-        ))
-        temp_db.insert_activity(Activity(
-            activity_id="act_r2",
-            account_id="acc_test",
-            activity_type=ActivityType.NOTE,
-            subject="Run 2 Activity",
-            run_id="run_002",
-        ))
+        temp_db.insert_activity(
+            Activity(
+                activity_id="act_r1",
+                account_id="acc_test",
+                activity_type=ActivityType.EMAIL,
+                subject="Run 1 Activity",
+                run_id="run_001",
+            )
+        )
+        temp_db.insert_activity(
+            Activity(
+                activity_id="act_r2",
+                account_id="acc_test",
+                activity_type=ActivityType.NOTE,
+                subject="Run 2 Activity",
+                run_id="run_002",
+            )
+        )
 
         activities = temp_db.get_activities_by_run("run_001")
         assert len(activities) == 1
@@ -251,10 +257,7 @@ class TestCRMStorageBulkOperations:
 
     def test_bulk_insert_accounts(self, temp_db):
         """Can bulk insert accounts."""
-        accounts = [
-            Account(account_id=f"bulk_acc_{i}", name=f"Bulk Company {i}")
-            for i in range(5)
-        ]
+        accounts = [Account(account_id=f"bulk_acc_{i}", name=f"Bulk Company {i}") for i in range(5)]
         count = temp_db.bulk_insert_accounts(accounts)
         assert count == 5
         assert len(temp_db.list_accounts()) == 5
@@ -262,8 +265,7 @@ class TestCRMStorageBulkOperations:
     def test_bulk_insert_contacts(self, temp_db):
         """Can bulk insert contacts."""
         contacts = [
-            Contact(contact_id=f"bulk_con_{i}", full_name=f"Bulk Person {i}")
-            for i in range(5)
+            Contact(contact_id=f"bulk_con_{i}", full_name=f"Bulk Person {i}") for i in range(5)
         ]
         count = temp_db.bulk_insert_contacts(contacts)
         assert count == 5
@@ -298,12 +300,14 @@ class TestCRMStorageStats:
         temp_db.insert_account(Account(account_id="acc_1", name="Company 1"))
         temp_db.insert_contact(Contact(contact_id="con_1", full_name="Person 1"))
         temp_db.insert_contact(Contact(contact_id="con_2", full_name="Person 2"))
-        temp_db.insert_activity(Activity(
-            activity_id="act_1",
-            account_id="acc_1",
-            activity_type=ActivityType.EMAIL,
-            subject="Email 1",
-        ))
+        temp_db.insert_activity(
+            Activity(
+                activity_id="act_1",
+                account_id="acc_1",
+                activity_type=ActivityType.EMAIL,
+                subject="Email 1",
+            )
+        )
 
         stats = temp_db.get_stats()
         assert stats["accounts"] == 1
