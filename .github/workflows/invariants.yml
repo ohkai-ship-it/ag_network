@@ -1,0 +1,48 @@
+name: Invariants Check
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    name: Check Workspace Isolation Invariants
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run AST enforcement tests
+        run: |
+          pytest tests/test_pr1_storage_enforcement.py tests/test_pr3_crm_workspace_isolation.py -v --tb=short -k "ast or enforcement or unscoped or parameterless"
+
+      - name: Run workspace isolation tests
+        run: |
+          pytest -v --tb=short -k "workspace_isolation or workspace_mismatch or respects_workspace"
+
+      - name: Run CLI labels truthfulness tests
+        run: |
+          pytest tests/test_cli_labels_truthfulness.py -v --tb=short
+
+      - name: Verify no unscoped() in src/
+        run: |
+          # Quick grep check as backup to AST tests
+          if grep -r "\.unscoped(" src/agnetwork/*.py src/agnetwork/**/*.py 2>/dev/null | grep -v "def unscoped" | grep -v "# "; then
+            echo "ERROR: Found unscoped() calls in src/"
+            exit 1
+          fi
+          echo "OK: No unscoped() calls found in src/"

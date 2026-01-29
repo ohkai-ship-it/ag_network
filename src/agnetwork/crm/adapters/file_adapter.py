@@ -17,7 +17,6 @@ Usage:
 
 import csv
 import json
-import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -67,7 +66,7 @@ class FileCRMAdapter(BaseCRMAdapter):
 
         Args:
             storage: CRMStorage instance. REQUIRED.
-            base_path: Base path for exports. Defaults to AG_CRM_PATH or data/crm_exports/
+            base_path: Base path for CSV/JSON file exports. Defaults to data/crm_exports/
 
         Raises:
             TypeError: If storage is None.
@@ -79,10 +78,10 @@ class FileCRMAdapter(BaseCRMAdapter):
             )
         self.storage = storage
 
-        # Get base path from env or default
+        # Base path is for CSV/JSON exports only (not for the SQLite db)
+        # Storage handles its own db_path separately
         default_path = config.project_root / "data" / "crm_exports"
-        env_path = os.getenv("AG_CRM_PATH")
-        self.base_path = Path(env_path) if env_path else base_path or default_path
+        self.base_path = base_path or default_path
         self.base_path.mkdir(parents=True, exist_ok=True)
 
     # =========================================================================

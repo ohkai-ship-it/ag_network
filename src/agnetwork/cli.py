@@ -191,10 +191,11 @@ def _discover_and_fetch_deep_links(
     # Fetch selected deep links
     captured = []
     for sel in selections:
-        typer.echo(f"      Fetching: {sel.url[:50]}... ({sel.category})")
+        typer.echo(f"      [fetched] {sel.url[:50]}... ({sel.category})")
         dl_result = capture.capture_url(sel.url)
         if dl_result.is_success:
-            typer.echo(f"      ✅ {dl_result.title or 'No title'}")
+            cache_label = " [cached]" if dl_result.is_cached else ""
+            typer.echo(f"      ✅{cache_label} {dl_result.title or 'No title'}")
             db.upsert_source_from_capture(
                 source_id=dl_result.source_id,
                 url=dl_result.url,
@@ -251,7 +252,7 @@ def research(
     """Research a company and generate account research brief."""
     ws_ctx = get_workspace_context(ctx)
 
-    typer.echo(f"🔍 Researching {company}...")
+    typer.echo(f"🔍 [computed] Starting research run for {company}...")
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
 
     # Create run manager with workspace context
@@ -273,7 +274,7 @@ def research(
 
         # Fetch URLs if provided (M5)
         if urls:
-            typer.echo(f"🌐 Fetching {len(urls)} URLs...")
+            typer.echo(f"🌐 [fetched] Fetching {len(urls)} URLs...")
             from agnetwork.storage.sqlite import SQLiteManager
             from agnetwork.tools.web import SourceCapture
 
@@ -281,10 +282,11 @@ def research(
             db = SQLiteManager.for_workspace(ws_ctx)
 
             for url in urls:
-                typer.echo(f"   Fetching: {url[:60]}...")
+                typer.echo(f"   [fetched] {url[:60]}...")
                 result = capture.capture_url(url)
                 if result.is_success:
-                    typer.echo(f"   ✅ {result.title or 'No title'}")
+                    cache_label = " [cached]" if result.is_cached else ""
+                    typer.echo(f"   ✅{cache_label} {result.title or 'No title'}")
                     # Upsert to database
                     db.upsert_source_from_capture(
                         source_id=result.source_id,
@@ -466,7 +468,7 @@ def outreach(
 ):
     """Generate outreach message drafts."""
     ws_ctx = get_workspace_context(ctx)
-    typer.echo(f"📧 Creating outreach for {company} ({persona}) via {channel}...")
+    typer.echo(f"📧 [placeholder] Creating outreach for {company} ({persona}) via {channel}...")
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
     run = RunManager(command="outreach", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
@@ -476,7 +478,7 @@ def outreach(
         status="success",
     )
 
-    # Placeholder implementation
+    # Placeholder implementation (not using LLM)
     if channel == "email":
         subject = f"Partnership opportunity with {company}"
         body = f"Hi {persona},\n\nI'd like to explore a partnership..."
@@ -495,7 +497,7 @@ def outreach(
     markdown = f"# Outreach: {company}\n\n## {channel.title()}\n\n**Subject/Hook**: {subject}\n\n**Body**:\n{body}"
 
     run.save_artifact("outreach", markdown, outreach_data)
-    typer.echo("✅ Outreach drafts created")
+    typer.echo("✅ [placeholder] Outreach drafts created")
 
 
 @app.command()
@@ -508,7 +510,7 @@ def prep(
 ):
     """Generate meeting preparation pack."""
     ws_ctx = get_workspace_context(ctx)
-    typer.echo(f"📋 Preparing for {meeting_type} meeting with {company}...")
+    typer.echo(f"📋 [placeholder] Preparing for {meeting_type} meeting with {company}...")
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
     run = RunManager(command="prep", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
@@ -518,7 +520,7 @@ def prep(
         status="success",
     )
 
-    # Placeholder implementation
+    # Placeholder implementation (not using LLM)
     prep_data = {
         "company": company,
         "meeting_type": meeting_type,
@@ -532,7 +534,7 @@ def prep(
         markdown += f"- {item}\n"
 
     run.save_artifact("meeting_prep", markdown, prep_data)
-    typer.echo("✅ Meeting prep pack created")
+    typer.echo("✅ [placeholder] Meeting prep pack created")
 
 
 @app.command()
@@ -545,7 +547,7 @@ def followup(
 ):
     """Generate post-meeting follow-up."""
     ws_ctx = get_workspace_context(ctx)
-    typer.echo(f"📝 Creating follow-up for {company}...")
+    typer.echo(f"📝 [placeholder] Creating follow-up for {company}...")
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
     run = RunManager(command="followup", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
 
@@ -555,7 +557,7 @@ def followup(
         status="success",
     )
 
-    # Placeholder implementation
+    # Placeholder implementation (not using LLM)
     followup_data = {
         "company": company,
         "summary": "Good initial conversation, strong interest in solution",
@@ -568,14 +570,16 @@ def followup(
         markdown += f"- {step}\n"
 
     run.save_artifact("followup", markdown, followup_data)
-    typer.echo("✅ Follow-up created")
+    typer.echo("✅ [placeholder] Follow-up created")
 
 
 @app.command()
-def status():
-    """Show status of recent runs."""
+def status(ctx: Context):
+    """Show status of recent runs in the active workspace."""
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
     typer.echo("📊 Recent runs:")
-    runs = sorted(config.runs_dir.glob("*"), key=lambda x: x.name, reverse=True)
+    runs = sorted(ws_ctx.runs_dir.glob("*"), key=lambda x: x.name, reverse=True)
     for run in runs[:5]:
         status_file = run / "logs" / "agent_status.json"
         if status_file.exists():
@@ -697,18 +701,19 @@ def _fetch_urls_for_pipeline(
     from agnetwork.storage.sqlite import SQLiteManager
     from agnetwork.tools.web import SourceCapture
 
-    typer.echo(f"🌐 Fetching {len(urls)} URLs...")
+    typer.echo(f"🌐 [fetched] Fetching {len(urls)} URLs...")
 
     temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
     capture = SourceCapture(temp_run.run_dir / "sources")
-    db = SQLiteManager(db_path=ws_ctx.db_path)
+    db = SQLiteManager(db_path=ws_ctx.db_path, workspace_id=ws_ctx.workspace_id)
 
     captured_source_ids = []
     for url in urls:
-        typer.echo(f"   Fetching: {url[:60]}...")
+        typer.echo(f"   [fetched] {url[:60]}...")
         result = capture.capture_url(url)
         if result.is_success:
-            typer.echo(f"   ✅ {result.title or 'No title'}")
+            cache_label = " [cached]" if result.is_cached else ""
+            typer.echo(f"   ✅{cache_label} {result.title or 'No title'}")
             db.upsert_source_from_capture(
                 source_id=result.source_id,
                 url=result.url,
@@ -741,6 +746,24 @@ def _fetch_urls_for_pipeline(
     return captured_source_ids, temp_run
 
 
+def _build_mode_label(result: "PipelineResult", exec_mode: "ExecutionMode") -> str:
+    """Build truthful mode label for pipeline result.
+
+    PR4: Returns appropriate truth labels based on execution mode and cache status.
+    """
+    from agnetwork.kernel import ExecutionMode
+
+    # Check if any step results have cached=True
+    any_cached = any(
+        sr.metrics and sr.metrics.cached
+        for sr in result.step_results.values()
+    )
+
+    if exec_mode == ExecutionMode.LLM:
+        return "[LLM] [cached]" if any_cached else "[LLM]"
+    return "[computed]"
+
+
 def _print_pipeline_result(
     result: "PipelineResult",
     exec_mode: "ExecutionMode",
@@ -748,19 +771,19 @@ def _print_pipeline_result(
 ) -> None:
     """Print pipeline execution result to terminal.
 
+    PR4: Uses truth labels to indicate actual execution mode.
+
     Args:
         result: The pipeline result
         exec_mode: Execution mode used
         captured_source_ids: List of captured source IDs
     """
-    from agnetwork.kernel import ExecutionMode
-
     if result.success:
-        mode_label = "LLM" if exec_mode == ExecutionMode.LLM else "manual"
+        mode_label = _build_mode_label(result, exec_mode)
         memory_label = " +memory" if result.memory_enabled else ""
         urls_label = f" +{len(captured_source_ids)}urls" if captured_source_ids else ""
         typer.echo(
-            f"✅ Pipeline completed successfully! (mode: {mode_label}{memory_label}{urls_label})"
+            f"✅ Pipeline completed successfully! {mode_label}{memory_label}{urls_label}"
         )
         typer.echo(f"📁 Run folder: {config.runs_dir / result.run_id}")
         typer.echo(f"📄 Artifacts created: {len(result.artifacts_written)}")
@@ -946,7 +969,7 @@ def memory_rebuild_index(
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
     typer.echo("🔧 Rebuilding FTS5 indexes...")
 
-    db = SQLiteManager(db_path=ws_ctx.db_path)
+    db = SQLiteManager(db_path=ws_ctx.db_path, workspace_id=ws_ctx.workspace_id)
     db.rebuild_fts_index()
 
     typer.echo("✅ FTS5 indexes rebuilt successfully!")
@@ -971,8 +994,9 @@ def memory_search(
 
     ws_ctx = get_workspace_context(ctx)
     typer.echo(f"📂 Workspace: {ws_ctx.name}")
+    typer.echo("🔍 [computed] Searching (FTS)...")
 
-    db = SQLiteManager(db_path=ws_ctx.db_path)
+    db = SQLiteManager(db_path=ws_ctx.db_path, workspace_id=ws_ctx.workspace_id)
 
     if not artifacts_only:
         typer.echo("\n📚 Sources:")
@@ -1010,6 +1034,7 @@ app.add_typer(crm_app, name="crm")
 
 @crm_app.command(name="export-run")
 def crm_export_run(
+    ctx: Context,
     run_id: str = typer.Argument(..., help="Run ID to export"),
     format: str = typer.Option(
         "json", "--format", "-f", help="Output format: json or csv"
@@ -1030,6 +1055,8 @@ def crm_export_run(
     from agnetwork.crm.adapters import CRMAdapterFactory
     from agnetwork.crm.mapping import map_run_to_crm
 
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"[workspace: {ws_ctx.name}]")
     typer.echo(f"📦 Exporting run: {run_id}")
 
     # Map run to CRM objects
@@ -1039,14 +1066,14 @@ def crm_export_run(
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
-    # Determine output path
+    # Determine output path (workspace-scoped)
     if out is None:
-        out = config.project_root / "data" / "crm_exports" / run_id
+        out = ws_ctx.exports_dir / run_id
 
     typer.echo(f"📁 Output directory: {out}")
 
-    # Export using adapter from factory (M6.1)
-    adapter = CRMAdapterFactory.from_env()
+    # Export using workspace-scoped adapter
+    adapter = CRMAdapterFactory.create("file", ws_ctx=ws_ctx)
     result = adapter.export_data(package, str(out), format=format)
 
     if result.success:
@@ -1064,6 +1091,7 @@ def crm_export_run(
 
 @crm_app.command(name="export-latest")
 def crm_export_latest(
+    ctx: Context,
     format: str = typer.Option(
         "json", "--format", "-f", help="Output format: json or csv"
     ),
@@ -1081,8 +1109,11 @@ def crm_export_latest(
         ag crm export-latest --format csv
         ag crm export-latest --all  # Include non-pipeline runs
     """
-    # Find latest run
-    runs = sorted(config.runs_dir.glob("*"), key=lambda x: x.name, reverse=True)
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"[workspace: {ws_ctx.name}]")
+
+    # Find latest run (workspace-scoped)
+    runs = sorted(Path(ws_ctx.runs_dir).glob("*"), key=lambda x: x.name, reverse=True)
 
     if pipeline_only:
         runs = [r for r in runs if "__pipeline" in r.name]
@@ -1106,12 +1137,14 @@ def crm_export_latest(
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
+    # Workspace-scoped output path
     if out is None:
-        out = config.project_root / "data" / "crm_exports" / run_id
+        out = ws_ctx.exports_dir / run_id
 
     typer.echo(f"📁 Output directory: {out}")
 
-    adapter = CRMAdapterFactory.from_env()
+    # Workspace-scoped adapter
+    adapter = CRMAdapterFactory.create("file", ws_ctx=ws_ctx)
     result = adapter.export_data(package, str(out), format=format)
 
     if result.success:
@@ -1128,6 +1161,7 @@ def crm_export_latest(
 
 @crm_app.command(name="import")
 def crm_import(
+    ctx: Context,
     file: Path = typer.Argument(..., help="Path to import file or directory"),
     dry_run: bool = typer.Option(
         True, "--dry-run/--no-dry-run", help="Validate without persisting (default: dry-run)"
@@ -1143,10 +1177,14 @@ def crm_import(
     """
     from agnetwork.crm.adapters import CRMAdapterFactory
 
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"[workspace: {ws_ctx.name}]")
+
     mode = "DRY RUN" if dry_run else "LIVE"
     typer.echo(f"📥 Importing from: {file} ({mode})")
 
-    adapter = CRMAdapterFactory.from_env()
+    # Workspace-scoped adapter
+    adapter = CRMAdapterFactory.create("file", ws_ctx=ws_ctx)
     result = adapter.import_data(str(file), dry_run=dry_run)
 
     if result.success:
@@ -1205,6 +1243,7 @@ def _render_activities_list(activities: list) -> None:
 
 @crm_app.command(name="list")
 def crm_list(
+    ctx: Context,
     entity: str = typer.Argument(
         "accounts", help="Entity type: accounts, contacts, or activities"
     ),
@@ -1220,9 +1259,20 @@ def crm_list(
         ag crm list contacts --account acc_testcompany
         ag crm list activities --limit 10
     """
+    # Validate entity type FIRST (before creating adapter)
+    valid_entities = {"accounts", "contacts", "activities"}
+    if entity not in valid_entities:
+        typer.echo(f"❌ Unknown entity type: {entity}", err=True)
+        typer.echo("   Valid types: accounts, contacts, activities")
+        raise typer.Exit(1)
+
     from agnetwork.crm.adapters import CRMAdapterFactory
 
-    adapter = CRMAdapterFactory.from_env()
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"[workspace: {ws_ctx.name}]")
+
+    # Workspace-scoped adapter
+    adapter = CRMAdapterFactory.create("file", ws_ctx=ws_ctx)
 
     # Dispatch table for entity handlers
     handlers = {
@@ -1235,16 +1285,12 @@ def crm_list(
         ),
     }
 
-    if entity not in handlers:
-        typer.echo(f"❌ Unknown entity type: {entity}", err=True)
-        typer.echo("   Valid types: accounts, contacts, activities")
-        raise typer.Exit(1)
-
     handlers[entity]()
 
 
 @crm_app.command(name="search")
 def crm_search(
+    ctx: Context,
     query: str = typer.Argument(..., help="Search query"),
     entity: str = typer.Option(
         "all", "--entity", "-e", help="Entity type: accounts, contacts, or all"
@@ -1260,7 +1306,11 @@ def crm_search(
     """
     from agnetwork.crm.adapters import CRMAdapterFactory
 
-    adapter = CRMAdapterFactory.from_env()
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"[workspace: {ws_ctx.name}]")
+
+    # Workspace-scoped adapter
+    adapter = CRMAdapterFactory.create("file", ws_ctx=ws_ctx)
 
     if entity in ("all", "accounts"):
         accounts = adapter.search_accounts(query, limit=limit)
@@ -1276,7 +1326,7 @@ def crm_search(
 
 
 @crm_app.command(name="stats")
-def crm_stats():
+def crm_stats(ctx: Context):
     """Show CRM storage statistics.
 
     Example:
@@ -1284,7 +1334,11 @@ def crm_stats():
     """
     from agnetwork.crm.storage import CRMStorage
 
-    storage = CRMStorage()
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"[workspace: {ws_ctx.name}]")
+
+    # Workspace-scoped storage
+    storage = CRMStorage.for_workspace(ws_ctx)
     stats = storage.get_stats()
 
     typer.echo("\n📊 CRM Storage Statistics:")
@@ -1303,6 +1357,7 @@ app.add_typer(sequence_app, name="sequence")
 
 @sequence_app.command(name="plan")
 def sequence_plan(
+    ctx: Context,
     run_id: str = typer.Argument(..., help="Run ID to build sequence from"),
     channel: str = typer.Option(
         "email", "--channel", "-c", help="Channel: email or linkedin"
@@ -1330,10 +1385,12 @@ def sequence_plan(
     from agnetwork.crm.models import CRMExportManifest, CRMExportPackage
     from agnetwork.crm.sequence import SequenceBuilder
 
+    ws_ctx = get_workspace_context(ctx)
+    typer.echo(f"📂 Workspace: {ws_ctx.name}")
     typer.echo(f"📋 Building sequence plan for run: {run_id}")
 
-    # Load run data
-    run_dir = config.runs_dir / run_id
+    # Load run data from workspace runs_dir
+    run_dir = ws_ctx.runs_dir / run_id
     if not run_dir.exists():
         typer.echo(f"❌ Run not found: {run_id}", err=True)
         raise typer.Exit(1)
@@ -1553,7 +1610,7 @@ def workspace_create(
         typer.echo(f"   DB: {context.db_path}")
 
         # Initialize database with workspace_meta
-        db = SQLiteManager(db_path=context.db_path)
+        db = SQLiteManager(db_path=context.db_path, workspace_id=context.workspace_id)
         db.init_workspace_metadata(context.workspace_id)
         typer.echo("   ✓ Database initialized")
 
@@ -1672,7 +1729,7 @@ def _doctor_collect(context) -> list[tuple[str, str, bool, str]]:
     if context.db_path.exists():
         checks.append(("💾 Database", "Database file exists", True, ""))
         try:
-            db = SQLiteManager(db_path=context.db_path)
+            db = SQLiteManager(db_path=context.db_path, workspace_id=context.workspace_id)
             ws_id = db.get_workspace_id()
             if ws_id == context.workspace_id:
                 checks.append(("💾 Database", "Workspace ID matches", True, ""))

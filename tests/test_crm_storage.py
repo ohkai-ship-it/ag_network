@@ -24,10 +24,13 @@ from agnetwork.crm.storage import CRMStorage
 
 @pytest.fixture
 def temp_db():
-    """Provide a temporary database for tests."""
-    with TemporaryDirectory() as tmpdir:
+    """Provide a temporary database for tests.
+
+    Uses unscoped() to bypass workspace verification for unit tests.
+    """
+    with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         db_path = Path(tmpdir) / "test_crm.sqlite"
-        storage = CRMStorage(db_path=db_path)
+        storage = CRMStorage.unscoped(db_path=db_path)
         yield storage
         storage.close()  # M6.2: Ensure DB is closed before temp cleanup
 
@@ -317,7 +320,7 @@ class TestCRMStorageLifecycle:
         This is a regression test for Windows SQLite file locking issues.
         """
         db_path = tmp_path / "lifecycle_test.sqlite"
-        storage = CRMStorage(db_path=db_path)
+        storage = CRMStorage.unscoped(db_path=db_path)
 
         # Write some data
         storage.insert_account(Account(account_id="acc_test", name="Test"))
@@ -334,7 +337,7 @@ class TestCRMStorageLifecycle:
         """Context manager ensures proper cleanup."""
         db_path = tmp_path / "context_test.sqlite"
 
-        with CRMStorage(db_path=db_path) as storage:
+        with CRMStorage.unscoped(db_path=db_path) as storage:
             storage.insert_account(Account(account_id="acc_ctx", name="Context Test"))
 
         # File should be deletable after context exit
@@ -345,7 +348,7 @@ class TestCRMStorageLifecycle:
     def test_double_close_is_safe(self, tmp_path):
         """Calling close() multiple times is safe."""
         db_path = tmp_path / "double_close.sqlite"
-        storage = CRMStorage(db_path=db_path)
+        storage = CRMStorage.unscoped(db_path=db_path)
         storage.insert_account(Account(account_id="acc_dbl", name="Double"))
 
         # Close multiple times - should not raise

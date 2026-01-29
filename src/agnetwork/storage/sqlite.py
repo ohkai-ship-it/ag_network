@@ -97,16 +97,36 @@ class SQLiteManager:
             db.add_source(...)
     """
 
-    def __init__(self, db_path: Path, *, workspace_id: Optional[str] = None):
-        """Initialize database connection.
+    def __init__(self, db_path: Path, *, workspace_id: str):
+        """Initialize database connection with workspace isolation.
 
         Args:
             db_path: Path to SQLite database file. REQUIRED.
-            workspace_id: Workspace ID for isolation guard. If provided,
+            workspace_id: Workspace ID for isolation guard. REQUIRED.
                          verify_workspace_id() is called automatically.
 
         Raises:
-            TypeError: If db_path is None.
+            TypeError: If db_path is None or workspace_id is not provided.
+
+        Note:
+            For tests or migrations that need unscoped access, use
+            SQLiteManager.unscoped(db_path) instead.
+        """
+        self._init_internal(db_path, workspace_id=workspace_id, verify=True)
+
+    def _init_internal(
+        self,
+        db_path: Path,
+        *,
+        workspace_id: Optional[str] = None,
+        verify: bool = True,
+    ) -> None:
+        """Internal initializer (shared by __init__ and unscoped).
+
+        Args:
+            db_path: Path to SQLite database file.
+            workspace_id: Workspace ID for isolation guard.
+            verify: Whether to verify workspace ID after init.
         """
         if db_path is None:
             raise TypeError(
@@ -120,23 +140,47 @@ class SQLiteManager:
         self._workspace_id = workspace_id
         self._init_db()
 
-        # Auto-verify workspace ID if provided
-        if workspace_id is not None:
+        # Verify workspace ID if requested and provided
+        if verify and workspace_id is not None:
             self.verify_workspace_id(workspace_id)
+
+    @classmethod
+    def unscoped(cls, db_path: Path) -> "SQLiteManager":
+        """Create an UNSCOPED SQLiteManager without workspace verification.
+
+        ⚠️  WARNING: This bypasses workspace isolation guards!
+        ⚠️  ONLY use for:
+            - Unit tests that don't need workspace context
+            - Database migrations
+            - Diagnostic/admin tools
+
+        Production code should ALWAYS use:
+            - SQLiteManager.for_workspace(ws_ctx)
+            - SQLiteManager(db_path=..., workspace_id=...)
+
+        Args:
+            db_path: Path to SQLite database file.
+
+        Returns:
+            SQLiteManager instance WITHOUT workspace verification.
+        """
+        instance = cls.__new__(cls)
+        instance._init_internal(db_path, workspace_id=None, verify=False)
+        return instance
 
     @classmethod
     def for_workspace(cls, ws_ctx: "WorkspaceContext") -> "SQLiteManager":
         """Factory method to create a workspace-bound SQLiteManager.
 
-        This is the preferred way to create a SQLiteManager instance.
+        This is the PREFERRED way to create a SQLiteManager instance.
         It automatically binds to the workspace's database and verifies
-        the workspace ID.
+        the workspace ID (raising WorkspaceMismatchError on mismatch).
 
         Args:
             ws_ctx: WorkspaceContext with db_path and workspace_id.
 
         Returns:
-            SQLiteManager bound to the workspace.
+            SQLiteManager bound to the workspace with verified isolation.
 
         Example:
             with SQLiteManager.for_workspace(ws_ctx) as db:

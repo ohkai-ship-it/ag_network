@@ -8,6 +8,7 @@ Extends the existing SQLite storage with tables for canonical CRM data:
 External refs are stored as JSON in each table for simplicity.
 
 M6: Read/write to local database only. No breaking changes to existing tables.
+PR3: Workspace isolation enforced via workspace_id guard (like SQLiteManager).
 """
 
 from __future__ import annotations
@@ -38,21 +39,43 @@ class CRMStorage:
     Maintains traceability to the run system via run_id, artifact_refs, source_ids.
 
     IMPORTANT: Always use the `for_workspace()` factory or provide explicit
-    db_path to ensure workspace isolation.
+    db_path + workspace_id to ensure workspace isolation.
 
     Supports context manager protocol for automatic cleanup:
         with CRMStorage.for_workspace(ws_ctx) as storage:
             storage.insert_account(...)
     """
 
-    def __init__(self, db_path: Path):
-        """Initialize CRM storage.
+    def __init__(self, db_path: Path, *, workspace_id: str):
+        """Initialize CRM storage with workspace isolation.
 
         Args:
             db_path: Path to SQLite database. REQUIRED.
+            workspace_id: Workspace ID for isolation guard. REQUIRED.
+                         verify_workspace_id() is called automatically.
 
         Raises:
-            TypeError: If db_path is None.
+            TypeError: If db_path is None or workspace_id is not provided.
+
+        Note:
+            For tests or migrations that need unscoped access, use
+            CRMStorage.unscoped(db_path) instead.
+        """
+        self._init_internal(db_path, workspace_id=workspace_id, verify=True)
+
+    def _init_internal(
+        self,
+        db_path: Path,
+        *,
+        workspace_id: Optional[str] = None,
+        verify: bool = True,
+    ) -> None:
+        """Internal initializer (shared by __init__ and unscoped).
+
+        Args:
+            db_path: Path to SQLite database file.
+            workspace_id: Workspace ID for isolation guard.
+            verify: Whether to verify workspace ID after init.
         """
         if db_path is None:
             raise TypeError(
@@ -62,17 +85,23 @@ class CRMStorage:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._closed = False
+        self._workspace_id_verified = False
         self._init_tables()
+
+        # Verify workspace ID if provided
+        if verify and workspace_id is not None:
+            self.verify_workspace_id(workspace_id)
 
     @classmethod
     def for_workspace(cls, ws_ctx: "WorkspaceContext") -> "CRMStorage":
         """Factory method to create a workspace-bound CRMStorage.
 
         This is the preferred way to create a CRMStorage instance.
-        It automatically binds to the workspace's database.
+        It automatically binds to the workspace's CRM database with
+        workspace ID verification.
 
         Args:
-            ws_ctx: WorkspaceContext with db_path.
+            ws_ctx: WorkspaceContext with exports_dir and workspace_id.
 
         Returns:
             CRMStorage bound to the workspace.
@@ -81,7 +110,26 @@ class CRMStorage:
             with CRMStorage.for_workspace(ws_ctx) as storage:
                 storage.insert_account(...)
         """
-        return cls(db_path=ws_ctx.db_path)
+        # CRM uses its own db file in exports_dir (not the main workspace.sqlite)
+        crm_db_path = ws_ctx.exports_dir / "crm.db"
+        return cls(db_path=crm_db_path, workspace_id=ws_ctx.workspace_id)
+
+    @classmethod
+    def unscoped(cls, db_path: Path) -> "CRMStorage":
+        """Create unscoped CRMStorage for tests/migrations only.
+
+        WARNING: This bypasses workspace verification and should only
+        be used in test fixtures or migration scripts.
+
+        Args:
+            db_path: Path to SQLite database file.
+
+        Returns:
+            CRMStorage without workspace verification.
+        """
+        instance = object.__new__(cls)
+        instance._init_internal(db_path, workspace_id=None, verify=False)
+        return instance
 
     def __enter__(self) -> "CRMStorage":
         """Enter context manager."""
@@ -123,6 +171,17 @@ class CRMStorage:
         """Initialize CRM tables (migrations)."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+
+            # PR3: Workspace metadata table for isolation guard
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS crm_workspace_meta (
+                    workspace_id TEXT PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    last_accessed TEXT NOT NULL
+                )
+                """
+            )
 
             # CRM Accounts table
             cursor.execute(
@@ -285,6 +344,105 @@ class CRMStorage:
             )
 
             conn.commit()
+
+    # =========================================================================
+    # Workspace Metadata (PR3: Isolation Guard)
+    # =========================================================================
+
+    def init_workspace_metadata(self, workspace_id: str) -> None:
+        """Initialize workspace metadata for a new CRM database.
+
+        Args:
+            workspace_id: Workspace ID to set
+
+        Raises:
+            ValueError: If workspace metadata already exists with different ID
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Check if metadata already exists
+            cursor.execute("SELECT workspace_id FROM crm_workspace_meta")
+            row = cursor.fetchone()
+
+            if row:
+                existing_id = row[0]
+                if existing_id != workspace_id:
+                    raise ValueError(
+                        f"CRM database already initialized with workspace_id {existing_id}, "
+                        f"cannot reinitialize with {workspace_id}"
+                    )
+                # Already initialized with correct ID, just update access time
+                cursor.execute(
+                    "UPDATE crm_workspace_meta SET last_accessed = ?",
+                    (datetime.now(timezone.utc).isoformat(),),
+                )
+            else:
+                # Initialize new workspace metadata
+                cursor.execute(
+                    """
+                    INSERT INTO crm_workspace_meta (workspace_id, created_at, last_accessed)
+                    VALUES (?, ?, ?)
+                    """,
+                    (
+                        workspace_id,
+                        datetime.now(timezone.utc).isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+
+            conn.commit()
+            self._workspace_id_verified = True
+
+    def get_workspace_id(self) -> Optional[str]:
+        """Get the workspace ID from CRM database metadata.
+
+        Returns:
+            Workspace ID if set, None if not initialized
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT workspace_id FROM crm_workspace_meta")
+            row = cursor.fetchone()
+            return row[0] if row else None
+
+    def verify_workspace_id(self, expected_workspace_id: str) -> None:
+        """Verify that CRM database workspace ID matches expected ID.
+
+        This is a guard to prevent cross-workspace access.
+
+        Args:
+            expected_workspace_id: Expected workspace ID
+
+        Raises:
+            WorkspaceMismatchError: If workspace ID doesn't match
+        """
+        if self._workspace_id_verified:
+            return  # Already verified
+
+        actual_id = self.get_workspace_id()
+
+        if actual_id is None:
+            # Database not initialized, initialize it now
+            self.init_workspace_metadata(expected_workspace_id)
+            self._workspace_id_verified = True
+            return
+
+        if actual_id != expected_workspace_id:
+            from agnetwork.workspaces import WorkspaceMismatchError
+
+            raise WorkspaceMismatchError(expected=expected_workspace_id, actual=actual_id)
+
+        # Update last accessed
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE crm_workspace_meta SET last_accessed = ?",
+                (datetime.now(timezone.utc).isoformat(),),
+            )
+            conn.commit()
+
+        self._workspace_id_verified = True
 
     # =========================================================================
     # Account Operations

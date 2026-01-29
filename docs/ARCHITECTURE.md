@@ -7,6 +7,17 @@
 
 ---
 
+## Development Coordination
+
+For multi-agent or multi-session development workflows, see:
+
+- **[docs/dev/agent_handoff/](dev/agent_handoff/)** — Source of truth for handoff coordination
+  - `CURRENT_STATE.md` — Active branch, test status, remaining tasks
+  - `NEXT_PR_PROMPT.md` — Ready-to-paste prompt for next PR
+  - `DECISIONS.md` — Architecture Decision Records (ADRs)
+
+---
+
 ## Table of Contents
 
 1. [Overview & Purpose](#1-overview--purpose)
@@ -1066,10 +1077,12 @@ class LLMConfig(BaseModel):
 
 #### Storage Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AG_DB_PATH` | `data/ag.sqlite` | Default SQLite database path |
-| `AG_RUNS_DIR` | `runs` | Default runs directory |
+| Variable | Default | Description | Status |
+|----------|---------|-------------|--------|
+| `AG_DB_PATH` | `data/ag.sqlite` | Bootstrap default for single-workspace setups | **Legacy/dev only** |
+| `AG_RUNS_DIR` | `runs` | Bootstrap default for single-workspace setups | **Legacy/dev only** |
+
+> **Note:** Workspace-aware commands MUST use `ws_ctx.db_path` and `ws_ctx.runs_dir`. These env vars only influence bootstrap tooling and legacy single-workspace dev setups.
 
 #### Workspace Configuration
 
@@ -1080,10 +1093,27 @@ class LLMConfig(BaseModel):
 
 #### CRM Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AG_CRM_ADAPTER` | `file` | CRM adapter to use |
-| `AG_CRM_PATH` | (workspace exports dir) | CRM export/import path |
+| Variable | Default | Description | Status |
+|----------|---------|-------------|--------|
+| `AG_CRM_ADAPTER` | `file` | CRM adapter type | Stable |
+| `AG_CRM_PATH` | — | Export/import **directory** for file adapter | **Dev override only** |
+
+> **Note:** `AG_CRM_PATH` is a development override for the file adapter's export/import directory. Stable/multi-user deployments MUST use workspace-scoped storage via `ws_ctx.exports_dir` (from `workspace.toml`).
+
+#### Configuration Precedence & Stability Policy
+
+**Precedence (highest → lowest):**
+
+1. `workspace.toml` paths (`runs`, `db`, `exports`)
+2. CLI flags / explicit `ws_ctx` injection
+3. Dev-only env overrides (`AG_CRM_PATH`, `AG_DB_PATH`, `AG_RUNS_DIR`) — NOT for stable multi-user
+4. Hardcoded defaults (used only when creating a workspace / dev tools)
+
+**Stability contract:**
+
+- Once declared "stable", config/env var meanings become a contract.
+- Non-disposable DB implies schema versioning + migrations; no silent path reinterpretations.
+- Workspace isolation remains non-negotiable; global fallbacks stay forbidden.
 
 ### B.2 Workspace Manifest (workspace.toml)
 

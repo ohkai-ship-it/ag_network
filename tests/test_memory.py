@@ -108,7 +108,7 @@ class TestClaimsSourceIdsPersistence:
     def temp_db(self, tmp_path):
         """Create a temporary database."""
         db_path = tmp_path / "test.db"
-        db = SQLiteManager(db_path)
+        db = SQLiteManager.unscoped(db_path)
         yield db
         # Ensure connections are closed for Windows cleanup
         close_sqlite_connections()
@@ -226,7 +226,7 @@ class TestFTS5Search:
     def seeded_db(self, tmp_path):
         """Create a database seeded with test data."""
         db_path = tmp_path / "test_fts.db"
-        db = SQLiteManager(db_path)
+        db = SQLiteManager.unscoped(db_path)
 
         # Insert test sources
         db.insert_source(
@@ -659,7 +659,7 @@ class TestFTSTriggers:
     def fresh_db(self, tmp_path):
         """Create a fresh database."""
         db_path = tmp_path / "test_triggers.db"
-        db = SQLiteManager(db_path)
+        db = SQLiteManager.unscoped(db_path)
         yield db
         # Ensure connections are closed for Windows cleanup
         close_sqlite_connections()

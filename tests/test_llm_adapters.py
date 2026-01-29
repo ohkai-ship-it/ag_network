@@ -330,6 +330,7 @@ class TestRealAdaptersSkipped:
     )
     def test_openai_adapter_live(self):
         """Test OpenAI adapter with real API (manual run only)."""
+        pytest.importorskip("openai", reason="openai package not installed")
         from agnetwork.tools.llm.adapters.openai import OpenAIAdapter
 
         adapter = OpenAIAdapter()

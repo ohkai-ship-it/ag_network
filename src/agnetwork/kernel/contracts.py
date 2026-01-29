@@ -141,11 +141,20 @@ class NextAction(BaseModel):
 
 
 class SkillMetrics(BaseModel):
-    """Metrics from skill execution."""
+    """Metrics from skill execution.
+
+    Attributes:
+        execution_time_ms: Time taken to execute skill in milliseconds
+        input_tokens: Number of input tokens (LLM calls only)
+        output_tokens: Number of output tokens (LLM calls only)
+        cached: Whether result was served from cache (no new LLM/fetch call)
+        custom: Additional custom metrics
+    """
 
     execution_time_ms: Optional[float] = None
     input_tokens: Optional[int] = None
     output_tokens: Optional[int] = None
+    cached: bool = False  # PR4: Track if result came from cache
     custom: Dict[str, Any] = Field(default_factory=dict)
 
 

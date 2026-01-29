@@ -150,14 +150,19 @@ Looking forward to connecting!"""
                 personalization_notes=personalization_notes,
             )
 
-        # Create JSON data
+        # Create JSON data (must include all required fields for schema validation)
         json_data = {
             "company": company,
             "persona": persona,
             "channel": channel,
-            "subject_or_hook": subject or hook,
-            "body": body,
-            "personalization_notes": personalization_notes,
+            "variants": [
+                {
+                    "channel": channel,
+                    "subject_or_hook": subject or hook,
+                    "body": body,
+                    "personalization_notes": personalization_notes,
+                }
+            ],
             "sequence_steps": sequence_steps,
             "objection_responses": objection_responses,
         }

@@ -38,10 +38,13 @@ from agnetwork.crm.storage import CRMStorage
 
 @pytest.fixture
 def temp_storage():
-    """Provide a temporary storage for tests."""
-    with TemporaryDirectory() as tmpdir:
+    """Provide a temporary storage for tests.
+
+    Uses unscoped() to bypass workspace verification for unit tests.
+    """
+    with TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         db_path = Path(tmpdir) / "test.sqlite"
-        storage = CRMStorage(db_path=db_path)
+        storage = CRMStorage.unscoped(db_path=db_path)
         yield storage
         storage.close()  # M6.2: Ensure DB is closed before temp cleanup
 
@@ -228,8 +231,8 @@ class TestFileCRMAdapterRoundTrip:
         # Export
         adapter.export_data(sample_package, str(export_dir), format="json")
 
-        # Create new adapter with fresh storage
-        fresh_storage = CRMStorage(db_path=base_path / "fresh.sqlite")
+        # Create new adapter with fresh storage (unscoped for tests)
+        fresh_storage = CRMStorage.unscoped(db_path=base_path / "fresh.sqlite")
         fresh_adapter = FileCRMAdapter(storage=fresh_storage, base_path=base_path)
 
         try:

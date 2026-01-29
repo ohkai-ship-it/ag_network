@@ -150,7 +150,7 @@ def temp_db():
     """Provide temporary database."""
     with TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test.sqlite"
-        db = SQLiteManager(db_path=db_path)
+        db = SQLiteManager.unscoped(db_path=db_path)
         yield db
         db.close()  # M6.2: Ensure DB is closed before temp cleanup
 

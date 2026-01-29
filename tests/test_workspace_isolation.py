@@ -43,8 +43,8 @@ def create_test_workspace(registry: WorkspaceRegistry, name: str) -> WorkspaceCo
     context = registry.create_workspace(name=name)
     context.ensure_directories()
 
-    # Initialize database
-    db = SQLiteManager(db_path=context.db_path)
+    # Initialize database (use unscoped for initial setup, then init metadata)
+    db = SQLiteManager.unscoped(db_path=context.db_path)
     db.init_workspace_metadata(context.workspace_id)
     db.close()
 
@@ -90,9 +90,8 @@ class TestWorkspaceIsolation:
         alpha = create_test_workspace(registry, "alpha")
         beta = create_test_workspace(registry, "beta")
 
-        # Add source to alpha
-        db_alpha = SQLiteManager(db_path=alpha.db_path)
-        db_alpha.verify_workspace_id(alpha.workspace_id)
+        # Add source to alpha (use for_workspace for proper isolation)
+        db_alpha = SQLiteManager.for_workspace(alpha)
         db_alpha.insert_source(
             source_id="src_alpha_1",
             source_type="text",
@@ -102,14 +101,13 @@ class TestWorkspaceIsolation:
         db_alpha.close()
 
         # Verify beta DB is empty (no sources)
-        db_beta = SQLiteManager(db_path=beta.db_path)
-        db_beta.verify_workspace_id(beta.workspace_id)
+        db_beta = SQLiteManager.for_workspace(beta)
         sources = db_beta.get_sources()
         assert len(sources) == 0
         db_beta.close()
 
         # Verify alpha has the source
-        db_alpha = SQLiteManager(db_path=alpha.db_path)
+        db_alpha = SQLiteManager.for_workspace(alpha)
         sources = db_alpha.get_sources()
         assert len(sources) == 1
         assert sources[0]["id"] == "src_alpha_1"
@@ -121,9 +119,8 @@ class TestWorkspaceIsolation:
         alpha = create_test_workspace(registry, "alpha")
         beta = create_test_workspace(registry, "beta")
 
-        # Add unique source to alpha
-        db_alpha = SQLiteManager(db_path=alpha.db_path)
-        db_alpha.verify_workspace_id(alpha.workspace_id)
+        # Add unique source to alpha (use for_workspace for proper isolation)
+        db_alpha = SQLiteManager.for_workspace(alpha)
         db_alpha.insert_source(
             source_id="src_alpha_unique",
             source_type="text",
@@ -137,8 +134,7 @@ class TestWorkspaceIsolation:
         db_alpha.close()
 
         # Search in beta - should be empty
-        db_beta = SQLiteManager(db_path=beta.db_path)
-        db_beta.verify_workspace_id(beta.workspace_id)
+        db_beta = SQLiteManager.for_workspace(beta)
         results = db_beta.search_sources_fts("unique alpha")
         assert len(results) == 0
         db_beta.close()
@@ -149,8 +145,9 @@ class TestWorkspaceIsolation:
         alpha = create_test_workspace(registry, "alpha")
         beta = create_test_workspace(registry, "beta")
 
-        # Try to open alpha DB with beta workspace ID
-        db = SQLiteManager(db_path=alpha.db_path)
+        # Try to open alpha DB with beta workspace ID - use unscoped to bypass
+        # auto-verification, then manually verify with wrong ID to trigger error
+        db = SQLiteManager.unscoped(db_path=alpha.db_path)
 
         with pytest.raises(WorkspaceMismatchError) as exc_info:
             db.verify_workspace_id(beta.workspace_id)
@@ -166,8 +163,7 @@ class TestWorkspaceIsolation:
         beta = create_test_workspace(registry, "beta")
 
         # Initialize alpha DB properly
-        db_alpha = SQLiteManager(db_path=alpha.db_path)
-        db_alpha.verify_workspace_id(alpha.workspace_id)
+        db_alpha = SQLiteManager.for_workspace(alpha)
         db_alpha.insert_source(
             source_id="src_test",
             source_type="text",
@@ -175,8 +171,9 @@ class TestWorkspaceIsolation:
         )
         db_alpha.close()
 
-        # Now try to access alpha DB with beta context
-        db = SQLiteManager(db_path=alpha.db_path)
+        # Now try to access alpha DB with beta context - use unscoped to
+        # bypass auto-verification, then manually verify with wrong ID
+        db = SQLiteManager.unscoped(db_path=alpha.db_path)
 
         # This should fail
         with pytest.raises(WorkspaceMismatchError):
@@ -220,8 +217,8 @@ class TestWorkspaceIsolation:
         assert context.root_dir.exists()
         assert (context.root_dir / "workspace.toml").exists()
 
-        # Initialize DB
-        db = SQLiteManager(db_path=context.db_path)
+        # Initialize DB (use unscoped for initial setup)
+        db = SQLiteManager.unscoped(db_path=context.db_path)
         db.init_workspace_metadata(context.workspace_id)
 
         # Verify workspace_meta exists
@@ -275,7 +272,7 @@ class TestWorkspaceIsolation:
         checks = context.verify_paths()
         assert all(checks.values())
 
-        # Verify DB has correct workspace_id
-        db = SQLiteManager(db_path=context.db_path)
+        # Verify DB has correct workspace_id (use for_workspace for proper isolation)
+        db = SQLiteManager.for_workspace(context)
         assert db.get_workspace_id() == context.workspace_id
         db.close()

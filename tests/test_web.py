@@ -473,7 +473,7 @@ class TestSQLiteSourceUpsert:
         from agnetwork.storage.sqlite import SQLiteManager
 
         db_path = tmp_path / "test.db"
-        db = SQLiteManager(db_path)
+        db = SQLiteManager.unscoped(db_path)
         # _init_db is called automatically in __init__
 
         # Upsert a source
@@ -501,7 +501,7 @@ class TestSQLiteSourceUpsert:
         from agnetwork.storage.sqlite import SQLiteManager
 
         db_path = tmp_path / "test.db"
-        db = SQLiteManager(db_path)
+        db = SQLiteManager.unscoped(db_path)
 
         # Insert first source
         success1 = db.upsert_source_from_capture(
@@ -540,7 +540,7 @@ class TestSQLiteSourceUpsert:
         from agnetwork.storage.sqlite import SQLiteManager
 
         db_path = tmp_path / "test.db"
-        db = SQLiteManager(db_path)
+        db = SQLiteManager.unscoped(db_path)
 
         # Insert a source
         db.upsert_source_from_capture(
