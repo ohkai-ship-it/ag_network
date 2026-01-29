@@ -206,9 +206,7 @@ def validate_artifact_json(
     # Check for meta block
     if require_meta:
         if "meta" not in data:
-            result.add_warning(
-                str(file_path), "Missing 'meta' block (may be legacy artifact)"
-            )
+            result.add_warning(str(file_path), "Missing 'meta' block (may be legacy artifact)")
         else:
             meta = data["meta"]
             missing_keys = REQUIRED_META_KEYS - set(meta.keys())
@@ -322,8 +320,7 @@ def _validate_claim_evidence(
 
     if ws_ctx is None:
         result.add_warning(
-            str(run_path),
-            "Cannot validate claim evidence: no workspace context provided"
+            str(run_path), "Cannot validate claim evidence: no workspace context provided"
         )
         return
 

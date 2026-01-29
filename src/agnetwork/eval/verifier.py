@@ -446,7 +446,9 @@ class Verifier:
                                             "angle_index": i,
                                             "evidence_index": j,
                                             "source_id": source_id,
-                                            "quote": quote[:100] + "..." if len(quote) > 100 else quote,
+                                            "quote": quote[:100] + "..."
+                                            if len(quote) > 100
+                                            else quote,
                                         },
                                     )
                                 )
@@ -520,6 +522,7 @@ def create_verifier_with_sources(  # noqa: C901
         if db_path is not None and workspace_id is not None:
             try:
                 from agnetwork.storage.sqlite import SQLiteManager
+
                 db = SQLiteManager(db_path=db_path, workspace_id=workspace_id)
                 source = db.get_source(source_id)
                 if source:

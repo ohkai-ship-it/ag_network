@@ -31,6 +31,7 @@ from .base import (
 # Optional httpx import - not required for tests
 try:
     import httpx
+
     HTTPX_AVAILABLE = True
 except ImportError:
     httpx = None  # type: ignore
@@ -63,6 +64,7 @@ class HTTPResponse:
         if self.json_data is not None:
             return self.json_data
         import json as json_module
+
         self.json_data = json_module.loads(self.body)
         return self.json_data
 
@@ -88,8 +90,7 @@ class HTTPClient:
         """
         if not HTTPX_AVAILABLE:
             raise ImportError(
-                "httpx is required for HTTP operations. "
-                "Install with: pip install httpx"
+                "httpx is required for HTTP operations. Install with: pip install httpx"
             )
 
         self.auth = auth
@@ -129,7 +130,7 @@ class HTTPClient:
         """Calculate retry delay with exponential backoff."""
         if retry_after is not None:
             return retry_after
-        return self.policy.retry_delay * (self.policy.retry_backoff ** attempt)
+        return self.policy.retry_delay * (self.policy.retry_backoff**attempt)
 
     def _map_error(
         self,
@@ -158,6 +159,7 @@ class HTTPClient:
             )
         elif status_code == 409:
             from .base import ConflictError
+
             return ConflictError(
                 f"Resource conflict: {body_str}",
                 connector_name=connector_name,
@@ -361,8 +363,7 @@ class AsyncHTTPClient:
         """Initialize async HTTP client."""
         if not HTTPX_AVAILABLE:
             raise ImportError(
-                "httpx is required for HTTP operations. "
-                "Install with: pip install httpx"
+                "httpx is required for HTTP operations. Install with: pip install httpx"
             )
 
         self.auth = auth
@@ -392,7 +393,7 @@ class AsyncHTTPClient:
     async def _async_sleep_and_retry(self, attempt: int) -> bool:
         """Async sleep before retry if attempts remain."""
         if attempt < self.policy.max_retries:
-            delay = self.policy.retry_delay * (self.policy.retry_backoff ** attempt)
+            delay = self.policy.retry_delay * (self.policy.retry_backoff**attempt)
             await asyncio.sleep(delay)
             return True
         return False
@@ -470,7 +471,7 @@ class AsyncHTTPClient:
             except httpx.ConnectError as e:
                 last_error = ConnectionError(f"Failed to connect to {url}: {e}")
                 if attempt < self.policy.max_retries:
-                    delay = self.policy.retry_delay * (self.policy.retry_backoff ** attempt)
+                    delay = self.policy.retry_delay * (self.policy.retry_backoff**attempt)
                     await asyncio.sleep(delay)
                     continue
 

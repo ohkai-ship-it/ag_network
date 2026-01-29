@@ -44,13 +44,13 @@ class TestExtractJson:
 
     def test_json_in_code_fence(self):
         """Test extraction from code fence with json tag."""
-        text = '''Here's the result:
+        text = """Here's the result:
 
 ```json
 {"name": "fenced", "value": 123}
 ```
 
-That's the output.'''
+That's the output."""
 
         result = extract_json(text)
         data = json.loads(result)
@@ -60,9 +60,9 @@ That's the output.'''
 
     def test_json_in_plain_fence(self):
         """Test extraction from code fence without json tag."""
-        text = '''```
+        text = """```
 {"name": "plain_fence", "value": 1}
-```'''
+```"""
 
         result = extract_json(text)
         data = json.loads(result)
@@ -71,9 +71,9 @@ That's the output.'''
 
     def test_json_with_text_before(self):
         """Test extraction when JSON follows text."""
-        text = '''Let me help you with that request.
+        text = """Let me help you with that request.
 
-{"name": "after_text", "value": 99}'''
+{"name": "after_text", "value": 99}"""
 
         result = extract_json(text)
         data = json.loads(result)

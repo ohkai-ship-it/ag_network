@@ -254,9 +254,7 @@ class TestNoConfigRunsDirInWorkspaceCommands:
                             and isinstance(child.value, ast.Name)
                             and child.value.id == "config"
                         ):
-                            violations.append(
-                                f"{node.name}:{child.lineno} uses config.runs_dir"
-                            )
+                            violations.append(f"{node.name}:{child.lineno} uses config.runs_dir")
 
         if violations:
             pytest.fail(

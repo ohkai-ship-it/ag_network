@@ -166,6 +166,7 @@ def _discover_and_fetch_deep_links(
     if use_agent:
         try:
             from agnetwork.tools.llm import LLMFactory
+
             llm_factory = LLMFactory.from_env()
             if llm_factory.is_enabled:
                 llm = llm_factory.get_default_adapter()
@@ -218,9 +219,7 @@ def _discover_and_fetch_deep_links(
 def research(
     ctx: Context,
     company: str = typer.Argument(..., help="Company name to research"),
-    snapshot: str = typer.Option(
-        ..., "--snapshot", "-s", help="Company snapshot/description"
-    ),
+    snapshot: str = typer.Option(..., "--snapshot", "-s", help="Company snapshot/description"),
     pains: Optional[List[str]] = typer.Option(
         None, "--pain", "-p", help="Key pains (can be repeated)"
     ),
@@ -243,11 +242,11 @@ def research(
         False, "--deep-links/--no-deep-links", help="Enable deep link discovery (M8)"
     ),
     deep_links_mode: str = typer.Option(
-        "deterministic", "--deep-links-mode", help="Deep link selection mode: deterministic or agent"
+        "deterministic",
+        "--deep-links-mode",
+        help="Deep link selection mode: deterministic or agent",
     ),
-    deep_links_max: int = typer.Option(
-        4, "--deep-links-max", help="Maximum deep links to fetch"
-    ),
+    deep_links_max: int = typer.Option(4, "--deep-links-max", help="Maximum deep links to fetch"),
 ):
     """Research a company and generate account research brief."""
     ws_ctx = get_workspace_context(ctx)
@@ -423,9 +422,7 @@ def research(
 def targets(
     ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
-    persona: Optional[str] = typer.Option(
-        None, "--persona", "-p", help="Target persona"
-    ),
+    persona: Optional[str] = typer.Option(None, "--persona", "-p", help="Target persona"),
 ):
     """Generate prospect target map for a company."""
     ws_ctx = get_workspace_context(ctx)
@@ -462,9 +459,7 @@ def outreach(
     ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
     persona: str = typer.Option(..., "--persona", "-p", help="Target persona"),
-    channel: str = typer.Option(
-        "email", "--channel", "-c", help="Channel: email or linkedin"
-    ),
+    channel: str = typer.Option("email", "--channel", "-c", help="Channel: email or linkedin"),
 ):
     """Generate outreach message drafts."""
     ws_ctx = get_workspace_context(ctx)
@@ -524,7 +519,11 @@ def prep(
     prep_data = {
         "company": company,
         "meeting_type": meeting_type,
-        "agenda": ["Introductions (5 min)", "Problem discovery (15 min)", "Solution overview (10 min)"],
+        "agenda": [
+            "Introductions (5 min)",
+            "Problem discovery (15 min)",
+            "Solution overview (10 min)",
+        ],
         "questions": ["What are your current challenges?", "How are you currently solving this?"],
         "stakeholder_map": {"VP Sales": "Economic buyer"},
     }
@@ -541,9 +540,7 @@ def prep(
 def followup(
     ctx: Context,
     company: str = typer.Argument(..., help="Company name"),
-    notes: str = typer.Option(
-        ..., "--notes", "-n", help="Meeting notes or file path"
-    ),
+    notes: str = typer.Option(..., "--notes", "-n", help="Meeting notes or file path"),
 ):
     """Generate post-meeting follow-up."""
     ws_ctx = get_workspace_context(ctx)
@@ -565,7 +562,9 @@ def followup(
         "tasks": [{"task": "Send proposal", "owner": "sales", "due": "2 days"}],
     }
 
-    markdown = f"# Follow-up: {company}\n\n## Summary\n{followup_data['summary']}\n\n## Next Steps\n"
+    markdown = (
+        f"# Follow-up: {company}\n\n## Summary\n{followup_data['summary']}\n\n## Next Steps\n"
+    )
     for step in followup_data["next_steps"]:
         markdown += f"- {step}\n"
 
@@ -606,9 +605,7 @@ def validate_run(
 
     typer.echo(f"🔍 Validating run folder: {run_path}")
 
-    result = validate_run_folder(
-        run_path, require_meta=require_meta, check_evidence=check_evidence
-    )
+    result = validate_run_folder(run_path, require_meta=require_meta, check_evidence=check_evidence)
 
     typer.echo(str(result))
 
@@ -703,7 +700,9 @@ def _fetch_urls_for_pipeline(
 
     typer.echo(f"🌐 [fetched] Fetching {len(urls)} URLs...")
 
-    temp_run = RunManager(command="pipeline", slug=company.lower().replace(" ", "_"), workspace=ws_ctx)
+    temp_run = RunManager(
+        command="pipeline", slug=company.lower().replace(" ", "_"), workspace=ws_ctx
+    )
     capture = SourceCapture(temp_run.run_dir / "sources")
     db = SQLiteManager(db_path=ws_ctx.db_path, workspace_id=ws_ctx.workspace_id)
 
@@ -754,10 +753,7 @@ def _build_mode_label(result: "PipelineResult", exec_mode: "ExecutionMode") -> s
     from agnetwork.kernel import ExecutionMode
 
     # Check if any step results have cached=True
-    any_cached = any(
-        sr.metrics and sr.metrics.cached
-        for sr in result.step_results.values()
-    )
+    any_cached = any(sr.metrics and sr.metrics.cached for sr in result.step_results.values())
 
     if exec_mode == ExecutionMode.LLM:
         return "[LLM] [cached]" if any_cached else "[LLM]"
@@ -782,9 +778,7 @@ def _print_pipeline_result(
         mode_label = _build_mode_label(result, exec_mode)
         memory_label = " +memory" if result.memory_enabled else ""
         urls_label = f" +{len(captured_source_ids)}urls" if captured_source_ids else ""
-        typer.echo(
-            f"✅ Pipeline completed successfully! {mode_label}{memory_label}{urls_label}"
-        )
+        typer.echo(f"✅ Pipeline completed successfully! {mode_label}{memory_label}{urls_label}")
         typer.echo(f"📁 Run folder: {config.runs_dir / result.run_id}")
         typer.echo(f"📄 Artifacts created: {len(result.artifacts_written)}")
         for artifact in result.artifacts_written:
@@ -806,9 +800,7 @@ def _print_pipeline_result(
 def run_pipeline(
     ctx: Context,
     company: str = typer.Argument(..., help="Company name to run pipeline for"),
-    snapshot: str = typer.Option(
-        "", "--snapshot", "-s", help="Company snapshot/description"
-    ),
+    snapshot: str = typer.Option("", "--snapshot", "-s", help="Company snapshot/description"),
     pains: Optional[List[str]] = typer.Option(
         None, "--pain", "-p", help="Key pains (can be repeated)"
     ),
@@ -821,21 +813,15 @@ def run_pipeline(
     urls: Optional[List[str]] = typer.Option(
         None, "--url", "-u", help="URLs to fetch and use as sources (can be repeated)"
     ),
-    persona: str = typer.Option(
-        "VP Sales", "--persona", help="Target persona"
-    ),
-    channel: str = typer.Option(
-        "email", "--channel", help="Outreach channel: email or linkedin"
-    ),
+    persona: str = typer.Option("VP Sales", "--persona", help="Target persona"),
+    channel: str = typer.Option("email", "--channel", help="Outreach channel: email or linkedin"),
     meeting_type: str = typer.Option(
         "discovery", "--meeting-type", help="Meeting type: discovery, demo, negotiation"
     ),
     notes: str = typer.Option(
         "Pipeline run completed", "--notes", "-n", help="Meeting notes for follow-up"
     ),
-    verify: bool = typer.Option(
-        True, "--verify/--no-verify", help="Run verification on results"
-    ),
+    verify: bool = typer.Option(True, "--verify/--no-verify", help="Run verification on results"),
     mode: str = typer.Option(
         "manual", "--mode", "-m", help="Execution mode: manual (default) or llm"
     ),
@@ -846,11 +832,11 @@ def run_pipeline(
         False, "--deep-links/--no-deep-links", help="Enable deep link discovery (M8)"
     ),
     deep_links_mode: str = typer.Option(
-        "deterministic", "--deep-links-mode", help="Deep link selection mode: deterministic or agent"
+        "deterministic",
+        "--deep-links-mode",
+        help="Deep link selection mode: deterministic or agent",
     ),
-    deep_links_max: int = typer.Option(
-        4, "--deep-links-max", help="Maximum deep links to fetch"
-    ),
+    deep_links_max: int = typer.Option(4, "--deep-links-max", help="Maximum deep links to fetch"),
 ):
     """Run the full BD pipeline for a company.
 
@@ -1036,12 +1022,8 @@ app.add_typer(crm_app, name="crm")
 def crm_export_run(
     ctx: Context,
     run_id: str = typer.Argument(..., help="Run ID to export"),
-    format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json or csv"
-    ),
-    out: Optional[Path] = typer.Option(
-        None, "--out", "-o", help="Output directory path"
-    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format: json or csv"),
+    out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output directory path"),
 ):
     """Export a pipeline run as a CRM package.
 
@@ -1092,12 +1074,8 @@ def crm_export_run(
 @crm_app.command(name="export-latest")
 def crm_export_latest(
     ctx: Context,
-    format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json or csv"
-    ),
-    out: Optional[Path] = typer.Option(
-        None, "--out", "-o", help="Output directory path"
-    ),
+    format: str = typer.Option("json", "--format", "-f", help="Output format: json or csv"),
+    out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output directory path"),
     pipeline_only: bool = typer.Option(
         True, "--pipeline-only/--all", help="Only export pipeline runs"
     ),
@@ -1244,13 +1222,9 @@ def _render_activities_list(activities: list) -> None:
 @crm_app.command(name="list")
 def crm_list(
     ctx: Context,
-    entity: str = typer.Argument(
-        "accounts", help="Entity type: accounts, contacts, or activities"
-    ),
+    entity: str = typer.Argument("accounts", help="Entity type: accounts, contacts, or activities"),
     limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
-    account_id: Optional[str] = typer.Option(
-        None, "--account", "-a", help="Filter by account ID"
-    ),
+    account_id: Optional[str] = typer.Option(None, "--account", "-a", help="Filter by account ID"),
 ):
     """List CRM entities from storage.
 
@@ -1359,9 +1333,7 @@ app.add_typer(sequence_app, name="sequence")
 def sequence_plan(
     ctx: Context,
     run_id: str = typer.Argument(..., help="Run ID to build sequence from"),
-    channel: str = typer.Option(
-        "email", "--channel", "-c", help="Channel: email or linkedin"
-    ),
+    channel: str = typer.Option("email", "--channel", "-c", help="Channel: email or linkedin"),
     start_date: Optional[str] = typer.Option(
         None, "--start", "-s", help="Start date (YYYY-MM-DD, defaults to today)"
     ),
@@ -1468,6 +1440,7 @@ def sequence_plan(
         )
 
         from agnetwork.crm.adapters import CRMAdapterFactory
+
         adapter = CRMAdapterFactory.from_env()
         result = adapter.export_data(package, str(out), format="json")
 
@@ -1582,9 +1555,7 @@ def workspace_create(
     root: Optional[Path] = typer.Option(
         None, "--root", "-r", help="Custom root directory (default: ~/.agnetwork/workspaces/<name>)"
     ),
-    set_default: bool = typer.Option(
-        False, "--set-default", help="Set as default workspace"
-    ),
+    set_default: bool = typer.Option(False, "--set-default", help="Set as default workspace"),
 ):
     """Create a new workspace with isolated storage.
 
@@ -1650,7 +1621,7 @@ def workspace_list():
 
 @workspace_app.command(name="show")
 def workspace_show(
-    name: Optional[str] = typer.Argument(None, help="Workspace name (default: current default)")
+    name: Optional[str] = typer.Argument(None, help="Workspace name (default: current default)"),
 ):
     """Show detailed information about a workspace.
 
@@ -1666,7 +1637,10 @@ def workspace_show(
         if name is None:
             name = registry.get_default_workspace()
             if name is None:
-                typer.echo("❌ No default workspace set. Specify name or create default workspace.", err=True)
+                typer.echo(
+                    "❌ No default workspace set. Specify name or create default workspace.",
+                    err=True,
+                )
                 raise typer.Exit(1)
 
         info = registry.get_workspace_info(name)
@@ -1676,11 +1650,18 @@ def workspace_show(
         typer.echo(f"   Root: {info['root_dir']}")
         typer.echo(f"   Default: {info['is_default']}")
         typer.echo("\n📂 Paths:")
-        for path_name, path_val in info['paths'].items():
-            exists = "✓" if info['paths_exist'].get(path_name.replace('_dir', '') if path_name.endswith('_dir') else path_name, False) else "✗"
+        for path_name, path_val in info["paths"].items():
+            exists = (
+                "✓"
+                if info["paths_exist"].get(
+                    path_name.replace("_dir", "") if path_name.endswith("_dir") else path_name,
+                    False,
+                )
+                else "✗"
+            )
             typer.echo(f"   {exists} {path_name}: {path_val}")
         typer.echo("\n🔒 Policy:")
-        for key, val in info['policy'].items():
+        for key, val in info["policy"].items():
             typer.echo(f"   {key}: {val}")
 
     except FileNotFoundError as e:
@@ -1692,9 +1673,7 @@ def workspace_show(
 
 
 @workspace_app.command(name="set-default")
-def workspace_set_default(
-    name: str = typer.Argument(..., help="Workspace name to set as default")
-):
+def workspace_set_default(name: str = typer.Argument(..., help="Workspace name to set as default")):
     """Set the default workspace.
 
     Example:
@@ -1734,7 +1713,14 @@ def _doctor_collect(context) -> list[tuple[str, str, bool, str]]:
             if ws_id == context.workspace_id:
                 checks.append(("💾 Database", "Workspace ID matches", True, ""))
             else:
-                checks.append(("💾 Database", "Workspace ID mismatch", False, f"expected {context.workspace_id}, got {ws_id}"))
+                checks.append(
+                    (
+                        "💾 Database",
+                        "Workspace ID mismatch",
+                        False,
+                        f"expected {context.workspace_id}, got {ws_id}",
+                    )
+                )
         except Exception as e:
             checks.append(("💾 Database", "Database error", False, str(e)))
     else:
@@ -1777,7 +1763,7 @@ def _doctor_print(name: str, checks: list[tuple[str, str, bool, str]]) -> bool:
 
 @workspace_app.command(name="doctor")
 def workspace_doctor(
-    name: Optional[str] = typer.Argument(None, help="Workspace name (default: current default)")
+    name: Optional[str] = typer.Argument(None, help="Workspace name (default: current default)"),
 ):
     """Run health checks on a workspace.
 
@@ -1826,7 +1812,7 @@ app.add_typer(prefs_app, name="prefs")
 def prefs_show(
     workspace: Optional[str] = typer.Option(
         None, "--workspace", "-w", help="Workspace name (default: current default)"
-    )
+    ),
 ):
     """Show current preferences for a workspace.
 
@@ -1907,9 +1893,7 @@ def prefs_reset(
     workspace: Optional[str] = typer.Option(
         None, "--workspace", "-w", help="Workspace name (default: current default)"
     ),
-    confirm: bool = typer.Option(
-        False, "--confirm", help="Confirm reset to defaults"
-    ),
+    confirm: bool = typer.Option(False, "--confirm", help="Confirm reset to defaults"),
 ):
     """Reset preferences to defaults for a workspace.
 
@@ -2036,9 +2020,7 @@ def _run_skill_command(
 def meeting_summary(
     ctx: Context,
     topic: str = typer.Option(..., "--topic", "-t", help="Meeting topic"),
-    notes: str = typer.Option(
-        ..., "--notes", "-n", help="Meeting notes (text or file path)"
-    ),
+    notes: str = typer.Option(..., "--notes", "-n", help="Meeting notes (text or file path)"),
     date: Optional[str] = typer.Option(
         None, "--date", "-d", help="Meeting date (YYYY-MM-DD, defaults to today)"
     ),
@@ -2100,12 +2082,8 @@ def status_update(
     next_week: Optional[List[str]] = typer.Option(
         None, "--next", "-n", help="Next week priority (can be repeated)"
     ),
-    period: str = typer.Option(
-        "This Week", "--period", "-p", help="Report period"
-    ),
-    author: str = typer.Option(
-        "Team Member", "--author", help="Report author"
-    ),
+    period: str = typer.Option("This Week", "--period", "-p", help="Report period"),
+    author: str = typer.Option("Team Member", "--author", help="Report author"),
 ):
     """Generate a status update report.
 
@@ -2143,18 +2121,14 @@ def decision_log(
     context_text: str = typer.Option(
         ..., "--context", "-c", help="Context/background for the decision"
     ),
-    decision: str = typer.Option(
-        ..., "--decision", "-d", help="The decision made"
-    ),
+    decision: str = typer.Option(..., "--decision", "-d", help="The decision made"),
     options: Optional[List[str]] = typer.Option(
         None, "--option", "-o", help="Option considered (format: 'name: description')"
     ),
     consequences: Optional[List[str]] = typer.Option(
         None, "--consequence", help="Consequence of the decision"
     ),
-    decision_makers: str = typer.Option(
-        "Team", "--decision-makers", help="Who made the decision"
-    ),
+    decision_makers: str = typer.Option("Team", "--decision-makers", help="Who made the decision"),
     status: str = typer.Option(
         "Accepted", "--status", "-s", help="Status: Proposed, Accepted, Deprecated"
     ),
@@ -2171,22 +2145,26 @@ def decision_log(
 
     # Parse options into structured format
     parsed_options = []
-    for opt in (options or []):
+    for opt in options or []:
         if ": " in opt:
             name, desc = opt.split(": ", 1)
-            parsed_options.append({
-                "name": name,
-                "description": desc,
-                "pros": [],
-                "cons": [],
-            })
+            parsed_options.append(
+                {
+                    "name": name,
+                    "description": desc,
+                    "pros": [],
+                    "cons": [],
+                }
+            )
         else:
-            parsed_options.append({
-                "name": opt,
-                "description": "",
-                "pros": [],
-                "cons": [],
-            })
+            parsed_options.append(
+                {
+                    "name": opt,
+                    "description": "",
+                    "pros": [],
+                    "cons": [],
+                }
+            )
 
     inputs = {
         "title": title,
@@ -2291,9 +2269,7 @@ def errand_list(
     locations: Optional[List[str]] = typer.Option(
         None, "--location", "-l", help="Location for errands (format: 'location: task')"
     ),
-    date: Optional[str] = typer.Option(
-        None, "--date", "-d", help="Date for errands (YYYY-MM-DD)"
-    ),
+    date: Optional[str] = typer.Option(None, "--date", "-d", help="Date for errands (YYYY-MM-DD)"),
 ):
     """Generate an organized errand list.
 
@@ -2312,31 +2288,37 @@ def errand_list(
     parsed_errands = []
 
     # Simple errands (no location)
-    for errand in (errands or []):
-        parsed_errands.append({
-            "task": errand,
-            "location": "General",
-            "priority": "normal",
-            "notes": None,
-        })
-
-    # Location-based errands
-    for loc in (locations or []):
-        if ": " in loc:
-            location, task = loc.split(": ", 1)
-            parsed_errands.append({
-                "task": task,
-                "location": location,
-                "priority": "normal",
-                "notes": None,
-            })
-        else:
-            parsed_errands.append({
-                "task": loc,
+    for errand in errands or []:
+        parsed_errands.append(
+            {
+                "task": errand,
                 "location": "General",
                 "priority": "normal",
                 "notes": None,
-            })
+            }
+        )
+
+    # Location-based errands
+    for loc in locations or []:
+        if ": " in loc:
+            location, task = loc.split(": ", 1)
+            parsed_errands.append(
+                {
+                    "task": task,
+                    "location": location,
+                    "priority": "normal",
+                    "notes": None,
+                }
+            )
+        else:
+            parsed_errands.append(
+                {
+                    "task": loc,
+                    "location": "General",
+                    "priority": "normal",
+                    "notes": None,
+                }
+            )
 
     inputs = {
         "date": date,
@@ -2383,10 +2365,12 @@ def travel_outline(
     itinerary = []
     if activities:
         # Put all activities on day 1 for simplicity
-        itinerary.append({
-            "date": start_date,
-            "activities": activities,
-        })
+        itinerary.append(
+            {
+                "date": start_date,
+                "activities": activities,
+            }
+        )
 
     inputs = {
         "destination": destination,
@@ -2409,5 +2393,3 @@ def travel_outline(
 
 if __name__ == "__main__":
     app()
-
-

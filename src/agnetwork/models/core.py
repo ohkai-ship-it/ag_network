@@ -59,7 +59,9 @@ class PersonalizationAngle(BaseModel):
     fact: str
     is_assumption: bool = True
     source_ids: List[str] = Field(default_factory=list)
-    evidence: List[EvidenceSnippet] = Field(default_factory=list)  # M8: Required if is_assumption=false
+    evidence: List[EvidenceSnippet] = Field(
+        default_factory=list
+    )  # M8: Required if is_assumption=false
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -80,7 +82,9 @@ class ResearchBrief(BaseModel):
     pains: List[str]
     triggers: List[str]
     competitors: List[str]
-    personalization_angles: List[Dict[str, Any]]  # {"angle": "...", "fact": "...", "is_assumption": bool, "evidence": [...]}
+    personalization_angles: List[
+        Dict[str, Any]
+    ]  # {"angle": "...", "fact": "...", "is_assumption": bool, "evidence": [...]}
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

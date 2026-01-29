@@ -46,6 +46,7 @@ class TestCRMAdapterRegistry:
 
     def test_register_and_unregister(self):
         """Can register and unregister adapters."""
+
         # Create a dummy adapter class
         class TestAdapter:
             pass
@@ -105,11 +106,14 @@ class TestCRMAdapterFactory:
         file_path = tmp_path / "crm.db"
         file_path.touch()
 
-        with patch.dict(os.environ, {
-            "AG_CRM_ADAPTER": "file",
-            "AG_CRM_PATH": str(file_path),
-            "AG_CRM_WORKSPACE_ID": "test-workspace",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "AG_CRM_ADAPTER": "file",
+                "AG_CRM_PATH": str(file_path),
+                "AG_CRM_WORKSPACE_ID": "test-workspace",
+            },
+        ):
             with pytest.raises(TypeError, match="must be a directory"):
                 CRMAdapterFactory.from_env()
 
@@ -118,11 +122,14 @@ class TestCRMAdapterFactory:
         exports_dir = tmp_path / "exports"
         exports_dir.mkdir()
 
-        with patch.dict(os.environ, {
-            "AG_CRM_ADAPTER": "file",
-            "AG_CRM_PATH": str(exports_dir),
-            "AG_CRM_WORKSPACE_ID": "test-workspace",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "AG_CRM_ADAPTER": "file",
+                "AG_CRM_PATH": str(exports_dir),
+                "AG_CRM_WORKSPACE_ID": "test-workspace",
+            },
+        ):
             adapter = CRMAdapterFactory.from_env()
             assert isinstance(adapter, FileCRMAdapter)
             # Storage db should be inside the exports dir
@@ -133,20 +140,26 @@ class TestCRMAdapterFactory:
         exports_dir = tmp_path / "new_exports"
         assert not exports_dir.exists()
 
-        with patch.dict(os.environ, {
-            "AG_CRM_ADAPTER": "file",
-            "AG_CRM_PATH": str(exports_dir),
-            "AG_CRM_WORKSPACE_ID": "test-workspace",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "AG_CRM_ADAPTER": "file",
+                "AG_CRM_PATH": str(exports_dir),
+                "AG_CRM_WORKSPACE_ID": "test-workspace",
+            },
+        ):
             adapter = CRMAdapterFactory.from_env()
             assert isinstance(adapter, FileCRMAdapter)
             assert exports_dir.exists()
 
     def test_from_env_unknown_raises(self):
         """from_env() raises for unknown adapter type."""
-        with patch.dict(os.environ, {
-            "AG_CRM_ADAPTER": "unknown_adapter",
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "AG_CRM_ADAPTER": "unknown_adapter",
+            },
+        ):
             with pytest.raises(ValueError, match="Unknown CRM adapter"):
                 CRMAdapterFactory.from_env()
 

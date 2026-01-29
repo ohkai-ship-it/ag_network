@@ -63,7 +63,9 @@ RULES:
     if target_personas:
         user_parts.append("\nExpected attendees:")
         for persona in target_personas[:4]:
-            user_parts.append(f"  - {persona.get('title', 'Unknown')} ({persona.get('role', 'unknown role')})")
+            user_parts.append(
+                f"  - {persona.get('title', 'Unknown')} ({persona.get('role', 'unknown role')})"
+            )
 
     user_parts.append("\n\nOutput the meeting prep as JSON:")
 
@@ -75,7 +77,15 @@ RULES:
 # JSON schema for documentation
 MEETING_PREP_SCHEMA = {
     "type": "object",
-    "required": ["company", "meeting_type", "agenda", "questions", "stakeholder_map", "listen_for_signals", "close_plan"],
+    "required": [
+        "company",
+        "meeting_type",
+        "agenda",
+        "questions",
+        "stakeholder_map",
+        "listen_for_signals",
+        "close_plan",
+    ],
     "properties": {
         "company": {"type": "string"},
         "meeting_type": {"type": "string", "enum": ["discovery", "demo", "negotiation"]},

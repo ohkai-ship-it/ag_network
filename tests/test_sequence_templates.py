@@ -96,6 +96,7 @@ class TestTemplateJSONFile:
         """Template JSON file exists."""
         # Find the resources directory
         from agnetwork.crm.sequence import get_template_loader
+
         loader = get_template_loader()
 
         # The loader should have found the file

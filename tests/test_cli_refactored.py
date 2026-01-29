@@ -32,7 +32,9 @@ def runner() -> CliRunner:
 class TestTimezoneImport:
     """Tests verifying timezone import fix (F821)."""
 
-    def test_sequence_plan_command_parses_dates(self, runner: CliRunner, temp_workspace_runs_dir: Path):
+    def test_sequence_plan_command_parses_dates(
+        self, runner: CliRunner, temp_workspace_runs_dir: Path
+    ):
         """sequence plan command can parse dates without NameError."""
         # First create a run with outreach artifact
         run_dir = temp_workspace_runs_dir / "20260127_test__testcompany__pipeline"

@@ -108,7 +108,9 @@ class Step(BaseModel):
     skill_name: str
     input_ref: Dict[str, Any] = Field(default_factory=dict)  # Input mapping
     depends_on: List[str] = Field(default_factory=list)  # Step IDs this depends on
-    expected_artifacts: List[str] = Field(default_factory=list)  # e.g., ["research_brief.md", "research_brief.json"]
+    expected_artifacts: List[str] = Field(
+        default_factory=list
+    )  # e.g., ["research_brief.md", "research_brief.json"]
 
     # Runtime state
     status: StepStatus = StepStatus.PENDING
@@ -162,10 +164,7 @@ class Plan(BaseModel):
 
     def is_complete(self) -> bool:
         """Check if all steps are completed."""
-        return all(
-            s.status in (StepStatus.COMPLETED, StepStatus.SKIPPED)
-            for s in self.steps
-        )
+        return all(s.status in (StepStatus.COMPLETED, StepStatus.SKIPPED) for s in self.steps)
 
     def has_failed(self) -> bool:
         """Check if any step has failed."""

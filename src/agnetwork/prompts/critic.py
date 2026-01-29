@@ -105,12 +105,16 @@ RULES:
     ]
 
     if constraints:
-        user_parts.append(f"\n\nConstraints to enforce:\n{json_module.dumps(constraints, indent=2)}")
+        user_parts.append(
+            f"\n\nConstraints to enforce:\n{json_module.dumps(constraints, indent=2)}"
+        )
 
     if evidence_summary:
         user_parts.append(f"\n\nAvailable evidence:\n{evidence_summary}")
     else:
-        user_parts.append("\n\nNo sources were provided - all specific claims should be marked as assumptions.")
+        user_parts.append(
+            "\n\nNo sources were provided - all specific claims should be marked as assumptions."
+        )
 
     user_parts.append("\n\nOutput your review as JSON:")
 
@@ -122,7 +126,14 @@ RULES:
 # Constraints templates for each artifact type
 ARTIFACT_CONSTRAINTS = {
     "research_brief": {
-        "required_fields": ["company", "snapshot", "pains", "triggers", "competitors", "personalization_angles"],
+        "required_fields": [
+            "company",
+            "snapshot",
+            "pains",
+            "triggers",
+            "competitors",
+            "personalization_angles",
+        ],
         "min_items": {
             "pains": 2,
             "triggers": 1,
@@ -147,7 +158,14 @@ ARTIFACT_CONSTRAINTS = {
         ],
     },
     "outreach": {
-        "required_fields": ["company", "persona", "channel", "variants", "sequence_steps", "objection_responses"],
+        "required_fields": [
+            "company",
+            "persona",
+            "channel",
+            "variants",
+            "sequence_steps",
+            "objection_responses",
+        ],
         "min_items": {
             "variants": 1,
             "sequence_steps": 3,
@@ -160,7 +178,15 @@ ARTIFACT_CONSTRAINTS = {
         ],
     },
     "meeting_prep": {
-        "required_fields": ["company", "meeting_type", "agenda", "questions", "stakeholder_map", "listen_for_signals", "close_plan"],
+        "required_fields": [
+            "company",
+            "meeting_type",
+            "agenda",
+            "questions",
+            "stakeholder_map",
+            "listen_for_signals",
+            "close_plan",
+        ],
         "min_items": {
             "agenda": 4,
             "questions": 4,
@@ -173,7 +199,14 @@ ARTIFACT_CONSTRAINTS = {
         ],
     },
     "followup": {
-        "required_fields": ["company", "meeting_date", "summary", "next_steps", "tasks", "crm_notes"],
+        "required_fields": [
+            "company",
+            "meeting_date",
+            "summary",
+            "next_steps",
+            "tasks",
+            "crm_notes",
+        ],
         "min_items": {
             "next_steps": 3,
             "tasks": 2,

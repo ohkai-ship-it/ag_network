@@ -93,7 +93,14 @@ TARGET_MAP_SCHEMA = {
                     "title": {"type": "string"},
                     "role": {
                         "type": "string",
-                        "enum": ["economic_buyer", "champion", "technical_evaluator", "blocker", "influencer", "end_user"],
+                        "enum": [
+                            "economic_buyer",
+                            "champion",
+                            "technical_evaluator",
+                            "blocker",
+                            "influencer",
+                            "end_user",
+                        ],
                     },
                     "hypothesis": {"type": "string"},
                     "is_assumption": {"type": "boolean"},

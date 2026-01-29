@@ -195,9 +195,7 @@ class CRMAdapterFactory:
 
         if adapter_class is None:
             available = CRMAdapterRegistry.list_adapters()
-            raise ValueError(
-                f"Unknown CRM adapter: '{name}'. Available: {available}"
-            )
+            raise ValueError(f"Unknown CRM adapter: '{name}'. Available: {available}")
 
         # For file adapter, ensure storage is provided with workspace scope
         if name.lower() == "file" and "storage" not in kwargs:

@@ -179,16 +179,22 @@ class TestLLMSkillWithCritic:
         # Set up critic to return patched JSON
         critic = fake_factory.get("critic")
         patched = json.loads(FAKE_RESEARCH_BRIEF)
-        patched["personalization_angles"].append({
-            "name": "Critic Added",
-            "fact": "This was added by the critic",
-            "is_assumption": True,
-        })
-        critic.queue_response(json.dumps({
-            "passed": True,
-            "issues": [],
-            "patched_json": patched,
-        }))
+        patched["personalization_angles"].append(
+            {
+                "name": "Critic Added",
+                "fact": "This was added by the critic",
+                "is_assumption": True,
+            }
+        )
+        critic.queue_response(
+            json.dumps(
+                {
+                    "passed": True,
+                    "issues": [],
+                    "patched_json": patched,
+                }
+            )
+        )
 
         executor = LLMSkillExecutor(
             llm_factory=fake_factory,
@@ -322,8 +328,10 @@ class TestManualModeUnchanged:
             [
                 "run-pipeline",
                 "TestCorp",
-                "--snapshot", "Test company",
-                "--pain", "Pain 1",
+                "--snapshot",
+                "Test company",
+                "--pain",
+                "Pain 1",
             ],
         )
 
@@ -344,7 +352,8 @@ class TestManualModeUnchanged:
             [
                 "research",
                 "TestCorp",
-                "--snapshot", "A test company",
+                "--snapshot",
+                "A test company",
             ],
         )
 

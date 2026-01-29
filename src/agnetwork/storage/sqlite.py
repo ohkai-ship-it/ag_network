@@ -209,6 +209,7 @@ class SQLiteManager:
 
         # Force garbage collection to release any lingering connections
         import gc
+
         gc.collect()
 
         # Force a checkpoint and close any WAL files
@@ -330,9 +331,7 @@ class SQLiteManager:
             # Add new columns if they don't exist (migration for existing DBs)
             for col, default in [("kind", "'assumption'"), ("created_at", "NULL")]:
                 try:
-                    cursor.execute(
-                        f"ALTER TABLE claims ADD COLUMN {col} TEXT DEFAULT {default}"
-                    )
+                    cursor.execute(f"ALTER TABLE claims ADD COLUMN {col} TEXT DEFAULT {default}")
                 except sqlite3.OperationalError:
                     pass  # Column already exists
 
@@ -954,9 +953,7 @@ class SQLiteManager:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM claims WHERE artifact_id = ?", (artifact_id,)
-            )
+            cursor.execute("SELECT * FROM claims WHERE artifact_id = ?", (artifact_id,))
             results = []
             for row in cursor.fetchall():
                 result = dict(row)
@@ -975,9 +972,7 @@ class SQLiteManager:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT 1 FROM sources WHERE id = ? LIMIT 1", (source_id,)
-            )
+            cursor.execute("SELECT 1 FROM sources WHERE id = ? LIMIT 1", (source_id,))
             return cursor.fetchone() is not None
 
     def artifact_exists(self, artifact_id: str) -> bool:
@@ -991,9 +986,7 @@ class SQLiteManager:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT 1 FROM artifacts WHERE id = ? LIMIT 1", (artifact_id,)
-            )
+            cursor.execute("SELECT 1 FROM artifacts WHERE id = ? LIMIT 1", (artifact_id,))
             return cursor.fetchone() is not None
 
     # ===========================================

@@ -147,6 +147,7 @@ def make_activity_id(
         if "/" in clean_ref or "\\" in clean_ref:
             # Extract filename without extension
             import os
+
             clean_ref = os.path.splitext(os.path.basename(clean_ref))[0]
         return _hash_components(run_id, clean_ref, activity_type, prefix="act")
 

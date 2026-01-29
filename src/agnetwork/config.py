@@ -13,9 +13,7 @@ class LLMConfig:
     def __init__(self):
         self.enabled: bool = os.getenv("AG_LLM_ENABLED", "0") == "1"
         self.default_provider: str = os.getenv("AG_LLM_DEFAULT_PROVIDER", "anthropic")
-        self.default_model: str = os.getenv(
-            "AG_LLM_DEFAULT_MODEL", "claude-sonnet-4-20250514"
-        )
+        self.default_model: str = os.getenv("AG_LLM_DEFAULT_MODEL", "claude-sonnet-4-20250514")
         self.temperature: float = float(os.getenv("AG_LLM_TEMPERATURE", "0.7"))
         self.max_tokens: int = int(os.getenv("AG_LLM_MAX_TOKENS", "4096"))
         self.timeout_s: int = int(os.getenv("AG_LLM_TIMEOUT_S", "60"))
@@ -42,16 +40,12 @@ class Config:
         self.project_root = Path(__file__).parent.parent.parent
 
         # Database
-        self.db_path: Path = Path(
-            os.getenv("AG_DB_PATH", "data/ag.sqlite")
-        )
+        self.db_path: Path = Path(os.getenv("AG_DB_PATH", "data/ag.sqlite"))
         if not self.db_path.is_absolute():
             self.db_path = self.project_root / self.db_path
 
         # Runs directory
-        self.runs_dir: Path = Path(
-            os.getenv("AG_RUNS_DIR", "runs")
-        )
+        self.runs_dir: Path = Path(os.getenv("AG_RUNS_DIR", "runs"))
         if not self.runs_dir.is_absolute():
             self.runs_dir = self.project_root / self.runs_dir
 

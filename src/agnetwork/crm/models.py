@@ -260,9 +260,7 @@ class Opportunity(BaseModel):
     opportunity_id: str = Field(..., description="Internal unique identifier")
     account_id: str = Field(..., description="Associated account ID")
     name: str = Field(..., description="Opportunity name")
-    stage: OpportunityStage = Field(
-        OpportunityStage.PROSPECTING, description="Current stage"
-    )
+    stage: OpportunityStage = Field(OpportunityStage.PROSPECTING, description="Current stage")
     amount: Optional[float] = Field(None, description="Deal amount")
     currency: str = Field("USD", description="Currency code")
     close_date: Optional[datetime] = Field(None, description="Expected close date")
@@ -315,9 +313,7 @@ class CRMExportManifest(BaseModel):
     activity_count: int = Field(0, description="Number of activities exported")
 
     # Traceability
-    artifact_refs: List[str] = Field(
-        default_factory=list, description="Artifact files included"
-    )
+    artifact_refs: List[str] = Field(default_factory=list, description="Artifact files included")
     source_count: int = Field(0, description="Total unique sources referenced")
     claim_count: int = Field(0, description="Total claims referenced")
 

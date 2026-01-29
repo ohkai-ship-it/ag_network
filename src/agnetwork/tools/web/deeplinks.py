@@ -132,41 +132,110 @@ class DeepLinksConfig:
         return cls(
             category_keywords={
                 "about": [
-                    "about", "about-us", "uber-uns", "ueber-uns", "unternehmen",
-                    "company", "who-we-are", "our-story", "team", "leadership",
-                    "management", "history", "mission", "vision", "values",
+                    "about",
+                    "about-us",
+                    "uber-uns",
+                    "ueber-uns",
+                    "unternehmen",
+                    "company",
+                    "who-we-are",
+                    "our-story",
+                    "team",
+                    "leadership",
+                    "management",
+                    "history",
+                    "mission",
+                    "vision",
+                    "values",
                 ],
                 "services": [
-                    "services", "leistungen", "dienstleistungen", "angebot",
-                    "offerings", "solutions", "what-we-do", "capabilities",
-                    "consulting", "beratung",
+                    "services",
+                    "leistungen",
+                    "dienstleistungen",
+                    "angebot",
+                    "offerings",
+                    "solutions",
+                    "what-we-do",
+                    "capabilities",
+                    "consulting",
+                    "beratung",
                 ],
                 "news": [
-                    "news", "blog", "aktuelles", "neuigkeiten", "press",
-                    "presse", "media", "insights", "articles", "updates",
-                    "announcements", "releases",
+                    "news",
+                    "blog",
+                    "aktuelles",
+                    "neuigkeiten",
+                    "press",
+                    "presse",
+                    "media",
+                    "insights",
+                    "articles",
+                    "updates",
+                    "announcements",
+                    "releases",
                 ],
                 "careers": [
-                    "careers", "jobs", "karriere", "stellenangebote",
-                    "work-with-us", "join-us", "opportunities", "vacancies",
-                    "employment", "hiring",
+                    "careers",
+                    "jobs",
+                    "karriere",
+                    "stellenangebote",
+                    "work-with-us",
+                    "join-us",
+                    "opportunities",
+                    "vacancies",
+                    "employment",
+                    "hiring",
                 ],
                 "products": [
-                    "products", "produkte", "portfolio", "brands",
-                    "catalog", "shop", "store",
+                    "products",
+                    "produkte",
+                    "portfolio",
+                    "brands",
+                    "catalog",
+                    "shop",
+                    "store",
                 ],
                 "contact": [
-                    "contact", "kontakt", "get-in-touch", "reach-us",
-                    "connect", "locations", "standorte",
+                    "contact",
+                    "kontakt",
+                    "get-in-touch",
+                    "reach-us",
+                    "connect",
+                    "locations",
+                    "standorte",
                 ],
             },
             blacklist_keywords=[
-                "impressum", "imprint", "datenschutz", "privacy", "privacy-policy",
-                "terms", "terms-of-service", "terms-of-use", "agb", "legal",
-                "cookie", "cookies", "disclaimer", "nutzungsbedingungen",
-                "rechtliches", "sitemap", "login", "signin", "sign-in",
-                "register", "signup", "sign-up", "logout", "cart", "checkout",
-                "warenkorb", "download", "pdf", "print", "drucken",
+                "impressum",
+                "imprint",
+                "datenschutz",
+                "privacy",
+                "privacy-policy",
+                "terms",
+                "terms-of-service",
+                "terms-of-use",
+                "agb",
+                "legal",
+                "cookie",
+                "cookies",
+                "disclaimer",
+                "nutzungsbedingungen",
+                "rechtliches",
+                "sitemap",
+                "login",
+                "signin",
+                "sign-in",
+                "register",
+                "signup",
+                "sign-up",
+                "logout",
+                "cart",
+                "checkout",
+                "warenkorb",
+                "download",
+                "pdf",
+                "print",
+                "drucken",
             ],
             max_per_category=1,
             max_total=4,
@@ -190,12 +259,14 @@ class DeepLinksConfig:
                 if suffix in (".yaml", ".yml"):
                     try:
                         import yaml
+
                         data = yaml.safe_load(f)
                     except ImportError:
                         logger.warning("pyyaml not installed, cannot load YAML config")
                         return cls.load_default()
                 elif suffix == ".toml":
                     import toml
+
                     data = toml.load(f)
                 else:
                     logger.warning(f"Unsupported config format: {suffix}")
@@ -556,19 +627,21 @@ def select_with_agent(  # noqa: C901
         config = DeepLinksConfig.load_default()
 
     # Build candidate list for LLM (limited to top candidates)
-    top_candidates = candidates[:min(20, len(candidates))]
+    top_candidates = candidates[: min(20, len(candidates))]
     valid_urls = {c.candidate.url for c in top_candidates}
 
     # Format candidates for LLM prompt
     candidate_list = []
     for i, scored in enumerate(top_candidates):
-        candidate_list.append({
-            "index": i,
-            "url": scored.candidate.url,
-            "anchor_text": scored.candidate.anchor_text,
-            "suggested_category": scored.best_category,
-            "score": round(scored.best_score, 2),
-        })
+        candidate_list.append(
+            {
+                "index": i,
+                "url": scored.candidate.url,
+                "anchor_text": scored.candidate.anchor_text,
+                "suggested_category": scored.best_category,
+                "score": round(scored.best_score, 2),
+            }
+        )
 
     categories = list(config.category_keywords.keys())
 
@@ -576,7 +649,7 @@ def select_with_agent(  # noqa: C901
 
 Given a list of candidate URLs from a company website, select up to {config.max_total} pages that would be most useful for business development research.
 
-CATEGORIES to consider: {', '.join(categories)}
+CATEGORIES to consider: {", ".join(categories)}
 
 RULES:
 1. Select at most {config.max_per_category} URL per category
@@ -613,7 +686,7 @@ Select the most valuable pages for business research. Output JSON only:"""
         response_text = response.get("content", "").strip()
 
         # Try to extract JSON from response
-        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        json_match = re.search(r"\{[\s\S]*\}", response_text)
         if not json_match:
             raise ValueError("No JSON found in response")
 
@@ -762,7 +835,10 @@ def discover_deep_links(
                 selection_method = "agent"
                 agent_validation = {"status": "success", "valid_count": len(agent_selection_raw)}
             else:
-                agent_validation = {"status": "fallback", "reason": "agent returned no valid selections"}
+                agent_validation = {
+                    "status": "fallback",
+                    "reason": "agent returned no valid selections",
+                }
         except Exception as e:
             agent_validation = {"status": "error", "reason": str(e)}
             logger.warning(f"Agent selection failed, using deterministic: {e}")

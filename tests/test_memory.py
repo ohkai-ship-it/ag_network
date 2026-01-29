@@ -379,6 +379,7 @@ class TestMemoryAPI:
 
     def test_retrieve_context_with_task_spec(self, memory_api: MemoryAPI):
         """Should retrieve context based on task spec."""
+
         # Create a mock task spec
         class MockTaskSpec:
             inputs = {
@@ -393,6 +394,7 @@ class TestMemoryAPI:
 
     def test_retrieve_context_empty_inputs(self, memory_api: MemoryAPI):
         """Should handle empty inputs gracefully."""
+
         class EmptyTaskSpec:
             inputs = {}
 

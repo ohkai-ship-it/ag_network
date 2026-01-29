@@ -116,14 +116,10 @@ def requires_approval(side_effect: SideEffectCategory) -> Callable[[F], F]:
                     raise ApprovalRequiredError(func.__name__, side_effect)
 
                 if not approval_token.is_valid():
-                    raise ApprovalRequiredError(
-                        f"{func.__name__} (token expired)", side_effect
-                    )
+                    raise ApprovalRequiredError(f"{func.__name__} (token expired)", side_effect)
 
                 if approval_token.side_effect != side_effect:
-                    raise ApprovalRequiredError(
-                        f"{func.__name__} (wrong side effect)", side_effect
-                    )
+                    raise ApprovalRequiredError(f"{func.__name__} (wrong side effect)", side_effect)
 
             return func(self, *args, **kwargs)
 
@@ -200,9 +196,7 @@ class CRMAdapter(Protocol):
         """
         ...
 
-    def list_contacts(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Contact]:
+    def list_contacts(self, account_id: Optional[str] = None, limit: int = 100) -> List[Contact]:
         """List contacts, optionally filtered by account.
 
         Args:
@@ -226,9 +220,7 @@ class CRMAdapter(Protocol):
         """
         ...
 
-    def list_activities(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Activity]:
+    def list_activities(self, account_id: Optional[str] = None, limit: int = 100) -> List[Activity]:
         """List activities, optionally filtered by account.
 
         Args:
@@ -321,9 +313,7 @@ class BaseCRMAdapter(ABC):
         pass
 
     @abstractmethod
-    def list_contacts(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Contact]:
+    def list_contacts(self, account_id: Optional[str] = None, limit: int = 100) -> List[Contact]:
         """List contacts."""
         pass
 
@@ -333,9 +323,7 @@ class BaseCRMAdapter(ABC):
         pass
 
     @abstractmethod
-    def list_activities(
-        self, account_id: Optional[str] = None, limit: int = 100
-    ) -> List[Activity]:
+    def list_activities(self, account_id: Optional[str] = None, limit: int = 100) -> List[Activity]:
         """List activities."""
         pass
 
@@ -428,8 +416,6 @@ def get_adapter(
     adapter_class = AdapterRegistry.get(name)
     if adapter_class is None:
         available = AdapterRegistry.list_adapters()
-        raise CRMAdapterError(
-            f"Unknown CRM adapter: '{name}'. Available: {available}"
-        )
+        raise CRMAdapterError(f"Unknown CRM adapter: '{name}'. Available: {available}")
 
     return adapter_class(**kwargs)

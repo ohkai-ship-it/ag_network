@@ -9,6 +9,7 @@ def test_run_manager_initialization(temp_run_dir):
     """Test that RunManager initializes correctly."""
     # Monkey patch config to use temp directory
     import agnetwork.config
+
     orig_runs_dir = agnetwork.config.config.runs_dir
     agnetwork.config.config.runs_dir = temp_run_dir
 
@@ -28,6 +29,7 @@ def test_run_manager_initialization(temp_run_dir):
 def test_run_manager_logging(temp_run_dir):
     """Test that RunManager logs actions correctly."""
     import agnetwork.config
+
     orig_runs_dir = agnetwork.config.config.runs_dir
     agnetwork.config.config.runs_dir = temp_run_dir
 
@@ -56,6 +58,7 @@ def test_run_manager_logging(temp_run_dir):
 def test_run_manager_artifacts(temp_run_dir):
     """Test that RunManager saves artifacts correctly."""
     import agnetwork.config
+
     orig_runs_dir = agnetwork.config.config.runs_dir
     agnetwork.config.config.runs_dir = temp_run_dir
 

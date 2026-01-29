@@ -73,7 +73,10 @@ class TestCRMStorageWorkspaceEnforcement:
             with pytest.raises(TypeError) as exc_info:
                 CRMStorage(db_path=db_path)  # type: ignore  # Missing workspace_id
 
-            assert "workspace_id" in str(exc_info.value).lower() or "required" in str(exc_info.value).lower()
+            assert (
+                "workspace_id" in str(exc_info.value).lower()
+                or "required" in str(exc_info.value).lower()
+            )
 
     def test_crm_storage_for_workspace_factory(self, two_workspaces):
         """CRMStorage.for_workspace() creates workspace-bound storage."""
@@ -204,21 +207,25 @@ class TestCRMCliWorkspaceIsolation:
         # Insert 2 accounts in ws1
         storage1 = CRMStorage.for_workspace(ws1)
         for i in range(2):
-            storage1.insert_account(Account(
-                account_id=f"acc_ws1_{i}",
-                name=f"WS1 Company {i}",
-                created_at=datetime.now(timezone.utc),
-            ))
+            storage1.insert_account(
+                Account(
+                    account_id=f"acc_ws1_{i}",
+                    name=f"WS1 Company {i}",
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
         storage1.close()
 
         # Insert 5 accounts in ws2
         storage2 = CRMStorage.for_workspace(ws2)
         for i in range(5):
-            storage2.insert_account(Account(
-                account_id=f"acc_ws2_{i}",
-                name=f"WS2 Company {i}",
-                created_at=datetime.now(timezone.utc),
-            ))
+            storage2.insert_account(
+                Account(
+                    account_id=f"acc_ws2_{i}",
+                    name=f"WS2 Company {i}",
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
         storage2.close()
 
         # Set ws1 as default
@@ -241,22 +248,26 @@ class TestCRMCliWorkspaceIsolation:
 
         # Insert searchable account in ws1
         storage1 = CRMStorage.for_workspace(ws1)
-        storage1.insert_account(Account(
-            account_id="acc_searchable_ws1",
-            name="TechStartup Alpha",
-            domain="techstartup.com",
-            created_at=datetime.now(timezone.utc),
-        ))
+        storage1.insert_account(
+            Account(
+                account_id="acc_searchable_ws1",
+                name="TechStartup Alpha",
+                domain="techstartup.com",
+                created_at=datetime.now(timezone.utc),
+            )
+        )
         storage1.close()
 
         # Insert same-keyword account in ws2
         storage2 = CRMStorage.for_workspace(ws2)
-        storage2.insert_account(Account(
-            account_id="acc_searchable_ws2",
-            name="TechStartup Beta",
-            domain="techbeta.com",
-            created_at=datetime.now(timezone.utc),
-        ))
+        storage2.insert_account(
+            Account(
+                account_id="acc_searchable_ws2",
+                name="TechStartup Beta",
+                domain="techbeta.com",
+                created_at=datetime.now(timezone.utc),
+            )
+        )
         storage2.close()
 
         # Search in ws1
@@ -308,12 +319,13 @@ class TestNoCRMStorageGlobalFallbacks:
 
                     if is_crm_storage_call:
                         # Check if workspace_id is provided
-                        has_workspace_id = any(
-                            kw.arg == "workspace_id" for kw in node.keywords
-                        )
+                        has_workspace_id = any(kw.arg == "workspace_id" for kw in node.keywords)
                         # Also check for factory methods which don't need workspace_id
                         # (for_workspace, unscoped are fine)
-                        if isinstance(func, ast.Attribute) and func.attr in ("for_workspace", "unscoped"):
+                        if isinstance(func, ast.Attribute) and func.attr in (
+                            "for_workspace",
+                            "unscoped",
+                        ):
                             continue
 
                         if not has_workspace_id:
@@ -321,9 +333,8 @@ class TestNoCRMStorageGlobalFallbacks:
                                 f"{py_file.relative_to(src_root.parent.parent)}:{node.lineno}"
                             )
 
-        assert not violations, (
-            "Found CRMStorage calls without workspace_id:\n"
-            + "\n".join(violations)
+        assert not violations, "Found CRMStorage calls without workspace_id:\n" + "\n".join(
+            violations
         )
 
     def test_no_crmstorage_unscoped_in_src(self):
@@ -398,8 +409,7 @@ class TestNoCRMStorageGlobalFallbacks:
                 in_crm_section = False
 
         assert not violations, (
-            "Found CRMAdapterFactory.from_env() in CLI CRM commands:\n"
-            + "\n".join(violations)
+            "Found CRMAdapterFactory.from_env() in CLI CRM commands:\n" + "\n".join(violations)
         )
 
     def test_no_global_crm_exports_path_in_cli(self):
@@ -412,10 +422,7 @@ class TestNoCRMStorageGlobalFallbacks:
             if "crm_exports" in line and "config" in line:
                 violations.append(f"cli.py:{i}: {line.strip()}")
 
-        assert not violations, (
-            "Found global crm_exports path in CLI:\n"
-            + "\n".join(violations)
-        )
+        assert not violations, "Found global crm_exports path in CLI:\n" + "\n".join(violations)
 
 
 class TestCRMAdapterFactoryWorkspaceEnforcement:

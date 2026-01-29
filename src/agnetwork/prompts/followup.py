@@ -92,7 +92,10 @@ FOLLOWUP_SCHEMA = {
                 "required": ["task", "owner", "due"],
                 "properties": {
                     "task": {"type": "string"},
-                    "owner": {"type": "string", "enum": ["sales", "prospect", "technical", "management"]},
+                    "owner": {
+                        "type": "string",
+                        "enum": ["sales", "prospect", "technical", "management"],
+                    },
                     "due": {"type": "string"},
                 },
             },

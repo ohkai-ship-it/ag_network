@@ -102,8 +102,7 @@ class Policy:
         """
         if urls and not self.allow_web_fetch:
             raise PolicyViolationError(
-                "Web fetching is disabled for this workspace. "
-                "Update workspace policy to enable."
+                "Web fetching is disabled for this workspace. Update workspace policy to enable."
             )
 
     def is_strict_privacy(self) -> bool:

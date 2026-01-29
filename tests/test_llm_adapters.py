@@ -148,6 +148,7 @@ class TestFakeAdapter:
 
     def test_response_function(self):
         """Test FakeAdapter with response function."""
+
         def dynamic_response(request: LLMRequest) -> str:
             content = request.messages[0].content
             return f'{{"echo": "{content[:20]}"}}'
@@ -305,10 +306,7 @@ class TestLLMFactory:
 class TestRealAdaptersSkipped:
     """Tests for real adapters (skipped without API keys)."""
 
-    @pytest.mark.skipif(
-        not os.environ.get("ANTHROPIC_API_KEY"),
-        reason="ANTHROPIC_API_KEY not set"
-    )
+    @pytest.mark.skipif(not os.environ.get("ANTHROPIC_API_KEY"), reason="ANTHROPIC_API_KEY not set")
     def test_anthropic_adapter_live(self):
         """Test Anthropic adapter with real API (manual run only)."""
         from agnetwork.tools.llm.adapters.anthropic import AnthropicAdapter
@@ -324,10 +322,7 @@ class TestRealAdaptersSkipped:
         assert "hello" in response.text.lower()
         assert response.provider == "anthropic"
 
-    @pytest.mark.skipif(
-        not os.environ.get("OPENAI_API_KEY"),
-        reason="OPENAI_API_KEY not set"
-    )
+    @pytest.mark.skipif(not os.environ.get("OPENAI_API_KEY"), reason="OPENAI_API_KEY not set")
     def test_openai_adapter_live(self):
         """Test OpenAI adapter with real API (manual run only)."""
         pytest.importorskip("openai", reason="openai package not installed")

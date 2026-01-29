@@ -94,10 +94,12 @@ class DummyConnector(BaseConnector):
 
     def _log_call(self, operation: str, args: Dict[str, Any]) -> None:
         """Log a method call for later assertions."""
-        self._call_log.append({
-            "operation": operation,
-            "args": args,
-        })
+        self._call_log.append(
+            {
+                "operation": operation,
+                "args": args,
+            }
+        )
 
     def get_call_log(self) -> List[Dict[str, Any]]:
         """Get log of all method calls."""

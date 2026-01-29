@@ -122,7 +122,11 @@ class TestCheckVersionCompatibility:
         result = check_version_compatibility("1.0.0")
         # Should still work - either parse first two parts or fail gracefully
         # Implementation decides - just verify it doesn't crash
-        assert result.status in (VersionCompatibility.COMPATIBLE, VersionCompatibility.WARN, VersionCompatibility.INCOMPATIBLE)
+        assert result.status in (
+            VersionCompatibility.COMPATIBLE,
+            VersionCompatibility.WARN,
+            VersionCompatibility.INCOMPATIBLE,
+        )
 
 
 class TestVersionCompatibilityMatrix:
@@ -131,15 +135,18 @@ class TestVersionCompatibilityMatrix:
     Documents the expected behavior for various version combinations.
     """
 
-    @pytest.mark.parametrize("manifest_version,expected_status", [
-        ("1.0", VersionCompatibility.COMPATIBLE),  # Exact match
-        ("1.1", VersionCompatibility.WARN),         # Same major, higher minor
-        ("1.9", VersionCompatibility.WARN),         # Same major, much higher minor
-        ("2.0", VersionCompatibility.INCOMPATIBLE), # Higher major
-        ("0.9", VersionCompatibility.INCOMPATIBLE), # Lower major
-        ("3.5", VersionCompatibility.INCOMPATIBLE), # Much higher major
-        ("x.y", VersionCompatibility.INCOMPATIBLE), # Invalid
-    ])
+    @pytest.mark.parametrize(
+        "manifest_version,expected_status",
+        [
+            ("1.0", VersionCompatibility.COMPATIBLE),  # Exact match
+            ("1.1", VersionCompatibility.WARN),  # Same major, higher minor
+            ("1.9", VersionCompatibility.WARN),  # Same major, much higher minor
+            ("2.0", VersionCompatibility.INCOMPATIBLE),  # Higher major
+            ("0.9", VersionCompatibility.INCOMPATIBLE),  # Lower major
+            ("3.5", VersionCompatibility.INCOMPATIBLE),  # Much higher major
+            ("x.y", VersionCompatibility.INCOMPATIBLE),  # Invalid
+        ],
+    )
     def test_compatibility_matrix(self, manifest_version, expected_status):
         """Test various version combinations."""
         result = check_version_compatibility(manifest_version)

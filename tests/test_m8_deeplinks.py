@@ -112,6 +112,7 @@ def sample_candidates():
 # Test: Deep Link Extraction
 # =============================================================================
 
+
 class TestExtractLinkCandidates:
     """Tests for extract_link_candidates function."""
 
@@ -200,6 +201,7 @@ class TestExtractLinkCandidates:
 # Test: Scoring and Ranking
 # =============================================================================
 
+
 class TestScoreAndRank:
     """Tests for score_and_rank function."""
 
@@ -242,6 +244,7 @@ class TestScoreAndRank:
 # =============================================================================
 # Test: Deterministic Selection
 # =============================================================================
+
 
 class TestSelectDeterministic:
     """Tests for select_deterministic function."""
@@ -294,6 +297,7 @@ class TestSelectDeterministic:
 # Test: Agent Selection (Mocked)
 # =============================================================================
 
+
 class TestSelectWithAgent:
     """Tests for select_with_agent function with mocked LLM."""
 
@@ -304,20 +308,22 @@ class TestSelectWithAgent:
         # Mock LLM that returns valid selection
         mock_llm = MagicMock()
         mock_llm.chat.return_value = {
-            "content": json.dumps({
-                "selected": [
-                    {
-                        "category": "about",
-                        "url": "https://www.testcompany.com/about-us",
-                        "reason": "Company information",
-                    },
-                    {
-                        "category": "services",
-                        "url": "https://www.testcompany.com/services",
-                        "reason": "Service offerings",
-                    },
-                ]
-            })
+            "content": json.dumps(
+                {
+                    "selected": [
+                        {
+                            "category": "about",
+                            "url": "https://www.testcompany.com/about-us",
+                            "reason": "Company information",
+                        },
+                        {
+                            "category": "services",
+                            "url": "https://www.testcompany.com/services",
+                            "reason": "Service offerings",
+                        },
+                    ]
+                }
+            )
         }
 
         selections = select_with_agent(
@@ -338,15 +344,17 @@ class TestSelectWithAgent:
         # Mock LLM that returns invalid URL
         mock_llm = MagicMock()
         mock_llm.chat.return_value = {
-            "content": json.dumps({
-                "selected": [
-                    {
-                        "category": "about",
-                        "url": "https://www.invalid.com/not-a-candidate",
-                        "reason": "Invented URL",
-                    },
-                ]
-            })
+            "content": json.dumps(
+                {
+                    "selected": [
+                        {
+                            "category": "about",
+                            "url": "https://www.invalid.com/not-a-candidate",
+                            "reason": "Invented URL",
+                        },
+                    ]
+                }
+            )
         }
 
         selections = select_with_agent(
@@ -383,9 +391,7 @@ class TestSelectWithAgent:
 
         # Mock LLM that returns invalid JSON
         mock_llm = MagicMock()
-        mock_llm.chat.return_value = {
-            "content": "This is not valid JSON at all"
-        }
+        mock_llm.chat.return_value = {"content": "This is not valid JSON at all"}
 
         selections = select_with_agent(
             scored,
@@ -401,6 +407,7 @@ class TestSelectWithAgent:
 # =============================================================================
 # Test: Full Discovery Pipeline
 # =============================================================================
+
 
 class TestDiscoverDeepLinks:
     """Tests for discover_deep_links function."""
@@ -456,6 +463,7 @@ class TestDiscoverDeepLinks:
 # Test: Homepage Detection
 # =============================================================================
 
+
 class TestIsHomepageUrl:
     """Tests for is_homepage_url function."""
 
@@ -478,6 +486,7 @@ class TestIsHomepageUrl:
 # =============================================================================
 # Test: Evidence Snippet Verification
 # =============================================================================
+
 
 class TestEvidenceVerification:
     """Tests for evidence snippet verification in verifier."""
@@ -648,6 +657,7 @@ class TestEvidenceVerification:
 # =============================================================================
 # Test: Integration Smoke Test
 # =============================================================================
+
 
 class TestIntegrationSmoke:
     """Integration smoke tests with mocked fetch."""

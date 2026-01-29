@@ -370,6 +370,5 @@ class TestNoGlobalFallbacks:
 
         if violations:
             pytest.fail(
-                "Found config.db_path fallback in storage modules:\n"
-                + "\n".join(violations)
+                "Found config.db_path fallback in storage modules:\n" + "\n".join(violations)
             )
