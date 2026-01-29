@@ -265,7 +265,7 @@ class TestCLIMemorySearchRespectWorkspace:
         """
         import inspect
 
-        from agnetwork.cli import memory_search
+        from agnetwork.cli.commands_memory import memory_search
 
         source = inspect.getsource(memory_search)
 

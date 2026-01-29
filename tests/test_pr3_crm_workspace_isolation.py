@@ -392,21 +392,16 @@ class TestNoCRMStorageGlobalFallbacks:
 
     def test_no_crm_adapter_from_env_in_cli(self):
         """Ensure CLI doesn't use CRMAdapterFactory.from_env() (dev-only method)."""
-        cli_path = Path(__file__).parent.parent / "src" / "agnetwork" / "cli.py"
+        # PR6: CLI is now a package - check the CRM commands module
+        cli_path = Path(__file__).parent.parent / "src" / "agnetwork" / "cli" / "commands_crm.py"
         source = cli_path.read_text(encoding="utf-8")
 
-        # Search for from_env usage in CRM command section
-        in_crm_section = False
+        # Search for from_env usage
         violations = []
 
         for i, line in enumerate(source.split("\n"), 1):
-            if "crm_app" in line or "@crm_app" in line:
-                in_crm_section = True
-            if in_crm_section and "from_env()" in line:
-                violations.append(f"cli.py:{i}: {line.strip()}")
-            # Exit CRM section when we hit sequence_app
-            if "sequence_app" in line:
-                in_crm_section = False
+            if "from_env()" in line:
+                violations.append(f"commands_crm.py:{i}: {line.strip()}")
 
         assert not violations, (
             "Found CRMAdapterFactory.from_env() in CLI CRM commands:\n" + "\n".join(violations)
@@ -414,13 +409,14 @@ class TestNoCRMStorageGlobalFallbacks:
 
     def test_no_global_crm_exports_path_in_cli(self):
         """Ensure CLI doesn't use config.project_root / 'data' / 'crm_exports'."""
-        cli_path = Path(__file__).parent.parent / "src" / "agnetwork" / "cli.py"
+        # PR6: CLI is now a package - check the CRM commands module
+        cli_path = Path(__file__).parent.parent / "src" / "agnetwork" / "cli" / "commands_crm.py"
         source = cli_path.read_text(encoding="utf-8")
 
         violations = []
         for i, line in enumerate(source.split("\n"), 1):
             if "crm_exports" in line and "config" in line:
-                violations.append(f"cli.py:{i}: {line.strip()}")
+                violations.append(f"commands_crm.py:{i}: {line.strip()}")
 
         assert not violations, "Found global crm_exports path in CLI:\n" + "\n".join(violations)
 

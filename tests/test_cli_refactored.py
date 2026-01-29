@@ -13,13 +13,15 @@ from unittest.mock import MagicMock
 import pytest
 from typer.testing import CliRunner
 
-from agnetwork.cli import (
+from agnetwork.cli import app
+from agnetwork.cli.commands_crm import (
     _render_accounts_list,
     _render_activities_list,
     _render_contacts_list,
+)
+from agnetwork.cli.commands_pipeline import (
     _resolve_execution_mode,
     _setup_llm_factory,
-    app,
 )
 
 

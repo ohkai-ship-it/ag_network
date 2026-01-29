@@ -243,7 +243,7 @@ class TestPipelineModeLabelDistinguishesCached:
 
     def test_build_mode_label_llm_no_cache(self):
         """_build_mode_label returns [LLM] when no cache."""
-        from agnetwork.cli import _build_mode_label
+        from agnetwork.cli.commands_pipeline import _build_mode_label
         from agnetwork.kernel import ExecutionMode
         from agnetwork.kernel.executor import ExecutionResult
 
@@ -256,7 +256,7 @@ class TestPipelineModeLabelDistinguishesCached:
 
     def test_build_mode_label_llm_with_cache(self):
         """_build_mode_label returns [LLM] [cached] when cached."""
-        from agnetwork.cli import _build_mode_label
+        from agnetwork.cli.commands_pipeline import _build_mode_label
         from agnetwork.kernel import ExecutionMode
         from agnetwork.kernel.executor import ExecutionResult
 
@@ -275,7 +275,7 @@ class TestPipelineModeLabelDistinguishesCached:
 
     def test_build_mode_label_manual(self):
         """_build_mode_label returns [computed] for MANUAL mode."""
-        from agnetwork.cli import _build_mode_label
+        from agnetwork.cli.commands_pipeline import _build_mode_label
         from agnetwork.kernel import ExecutionMode
         from agnetwork.kernel.executor import ExecutionResult
 
