@@ -2,7 +2,7 @@
 
 These connectors implement the Connector protocol without making
 any real network calls. Used for:
-- Unit tests
+- Unity tests
 - Integration tests
 - Development without external dependencies
 
