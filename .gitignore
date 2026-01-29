@@ -54,5 +54,6 @@ runs/
 # Project-specific
 .ruff_cache/
 
-# Dev docs (local only)
-docs/dev/
+# Dev docs: only _local/ is ignored (scratch/debug output)
+# All other docs/dev/ content (backlog, sprints, handoffs) commits normally.
+docs/dev/_local/
