@@ -3,7 +3,7 @@
 This module provides the gating mechanism for operations that could
 have external side effects (e.g., pushing data to external CRMs).
 
-M6 Status:
+M6 Statuses:
 - Infrastructure is in place
 - No actual CRM writes are performed (export-only)
 - FileCRMAdapter is exempt (local file writes only)
