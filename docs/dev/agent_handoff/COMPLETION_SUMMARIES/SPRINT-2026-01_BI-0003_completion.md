@@ -48,7 +48,7 @@ Completed a structured code review focused on CLI UX, Performance, and Observabi
 - **CLI-001 (P1)**: `[computed]` label printed in LLM paths — **truthfulness violation** (misleading output)
 - CLI-002: No workspace prefix in output headers
 - CLI-005: No progress indicators for long operations
-- CLI-006: Label registry drift (LABELS_V1/V2 with duplicates and unused entries)
+- CLI-006: Label helpers underutilized (`format_step_prefix()` rarely used)
 - CLI-007: Mixed table formats (rich vs plain text)
 
 ### Performance

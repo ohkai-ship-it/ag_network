@@ -50,11 +50,11 @@ This file tracks findings from the code review in triage format. Each finding is
 - **Proposed action**: BI-0012 (future enhancement)
 - **Suggested PR size**: M
 
-### CLI-006: Label registry drift (LABELS_V1/V2)
+### CLI-006: Label helpers underutilized
 - **Area**: CLI
 - **Severity**: P2
-- **Evidence**: `cli_labels.py:1-80` — Dual registry with ~30% unused labels and duplicates
-- **Risk to invariants**: None (technical debt, not correctness)
+- **Evidence**: `cli_labels.py:1-80` — `format_step_prefix()` and `get_mode_labels()` exist but are rarely used in commands
+- **Risk to invariants**: None (consistency issue)
 - **Proposed action**: BI-0011
 - **Suggested PR size**: S
 

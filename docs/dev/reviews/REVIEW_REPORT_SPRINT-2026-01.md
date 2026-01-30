@@ -66,7 +66,7 @@ This review focused on **CLI UX**, **Performance**, and **Observability** — ar
 | CLI-003 | Error messages don't suggest next action | P2 | `app.py` | 61-68 | `typer.Exit(1)` without actionable guidance |
 | CLI-004 | `--help` text inconsistent detail level | P2 | `commands_*.py` | various | Some commands have examples, others don't |
 | CLI-005 | No progress indicator for long-running ops | P2 | `commands_research.py` | 170+ | URL fetches have no spinner/progress |
-| CLI-006 | Label registry drift (LABELS_V1/V2) | P2 | `cli_labels.py` | 1-80 | Dual registry with ~30% unused labels and duplicates |
+| CLI-006 | Label helpers underutilized | P2 | `cli_labels.py` | 1-80 | `format_step_prefix()` and `get_mode_labels()` exist but rarely used in commands |
 | CLI-007 | Mixed table formats across commands | P2 | `commands_*.py` | various | Some commands use `rich.table`, others plain text |
 
 ### A.3 Proposed CLI Fix Buckets
@@ -74,7 +74,7 @@ This review focused on **CLI UX**, **Performance**, and **Observability** — ar
 | Bucket | Scope | PR Size | Priority |
 |--------|-------|---------|----------|
 | **Label truthfulness fix** | Fix `[computed]` in LLM paths (CLI-001) | S | **P1** |
-| Label cleanup pass | Consolidate LABELS_V1/V2, remove unused (CLI-006) | S | P2 |
+| Label helper adoption | Use `format_step_prefix()` consistently (CLI-006) | S | P2 |
 | Workspace prefix standardization | Add `[workspace: X]` to all outputs | S | P2 |
 | Table format consistency | Standardize on rich.table (CLI-007) | S | P2 |
 | Error message improvement | Add "next steps" to common errors | M | P2 |

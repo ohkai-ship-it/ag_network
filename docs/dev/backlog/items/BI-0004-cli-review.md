@@ -3,7 +3,7 @@
 ## Metadata
 - **ID:** BI-0004
 - **Type:** Hardening
-- **Status:** Proposed
+- **Status:** Done
 - **Priority:** P1
 - **Area:** CLI
 - **Owner:** Jeff
@@ -13,6 +13,7 @@
 CLI is the product surface. Confusing flags, inconsistent outputs, or misleading labels erode trust.
 We need a structured review focusing on:
 - “truthful CLI” labeling,
+- ease of use / user friendliness
 - command/flag coherence,
 - help text correctness,
 - output stability and determinism expectations.
