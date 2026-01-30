@@ -63,7 +63,7 @@ Created a minimal, offline performance harness for ag_network that:
 ## Usage
 
 ```bash
-# Run perf benchmarks
+# Run perf benchmarks only
 pytest tests/test_perf_baseline.py -v
 
 # Run with console output
@@ -72,7 +72,10 @@ pytest tests/test_perf_baseline.py -v -s
 # Run with JSON output (future)
 pytest tests/test_perf_baseline.py --perf-output docs/dev/_local/perf_baseline.json
 
-# Exclude perf tests from normal runs
+# Full test suite (includes perf tests)
+pytest
+
+# Exclude perf tests (recommended for CI)
 pytest -m "not perf"
 ```
 

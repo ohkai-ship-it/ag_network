@@ -3,7 +3,13 @@
 These tests establish repeatable performance baselines that can be run
 offline without network access or LLM providers.
 
+All benchmarks are deterministic:
+- CLI startup: in-process via CliRunner
+- Storage: synthetic data, fresh DB each run
+- Pipeline: uses `--mode manual` (template-only, no LLM calls)
+
 Run with: pytest tests/test_perf_baseline.py -v
+Exclude in CI: pytest -m "not perf"
 """
 
 from __future__ import annotations
@@ -319,7 +325,11 @@ class TestPerfBaseline:
     def test_pipeline_manual_mode(
         self, perf_report: PerfReport, runner: CliRunner, isolated_workspace
     ):
-        """Benchmark pipeline execution in manual mode (no LLM)."""
+        """Benchmark pipeline execution in manual mode.
+
+        Uses `--mode manual` explicitly: template-only artifact generation,
+        no LLM calls, no network access. This ensures deterministic timing.
+        """
         from agnetwork.cli import app
         from agnetwork.workspaces.registry import WorkspaceRegistry
 

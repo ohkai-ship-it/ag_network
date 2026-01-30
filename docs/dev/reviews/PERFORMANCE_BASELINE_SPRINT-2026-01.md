@@ -23,7 +23,7 @@ Establish a repeatable, offline performance baseline to:
 | CLI Startup | `ag --help` cold start | Measures import + Typer init |
 | Storage: Insert | 100 source records | FTS5 index overhead |
 | Storage: Search (FTS) | 10 queries against 100 records | Query latency |
-| Workflow: Pipeline (offline) | 5-artifact pipeline with mock LLM | End-to-end without network |
+| Workflow: Pipeline (offline) | 5-artifact pipeline with `--mode manual` | Template-only, no LLM |
 
 ### Out of Scope
 
@@ -87,7 +87,8 @@ tests/test_perf_baseline.py
 
 This allows:
 - Running perf tests separately: `pytest -m perf`
-- Including in full suite: `pytest` (skipped by default via marker)
+- Excluding in CI: `pytest -m "not perf"` (recommended for CI config)
+- Including in full local suite: `pytest` (runs all tests including perf)
 - Outputting results to JSON
 
 ### 4.2 Output Schema
@@ -128,7 +129,8 @@ pytest tests/test_perf_baseline.py -v --perf-output docs/dev/_local/perf_baselin
 
 > **Machine:** Windows 11 (10.0.22631), Python 3.14.0, 22-core  
 > **Date:** 2026-01-30  
-> **Runs:** 3 (median reported)
+> **Runs:** 3 (median reported)  
+> **Note:** Targets are generous initial thresholds; tighten after stable baseline established.
 
 | Benchmark | Median | Min | Max | Target | Status |
 |-----------|--------|-----|-----|--------|--------|
