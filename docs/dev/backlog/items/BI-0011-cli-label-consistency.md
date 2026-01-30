@@ -23,7 +23,7 @@ This **violates the truthful CLI invariant** — users cannot distinguish LLM-ge
 
 ### Additional Issues (P2)
 
-1. **Label registry drift** (CLI-006): `cli_labels.py` has a dual registry (LABELS_V1/V2) with ~30% unused labels and some duplicates
+1. **Label helpers underutilized** (CLI-006): `cli_labels.py` has `format_step_prefix()` and `get_mode_labels()` helpers but they're rarely used in commands
 
 2. **No workspace prefix in headers** (CLI-002): When working across workspaces, there's no visual cue for which workspace the output belongs to
 
@@ -34,7 +34,7 @@ This **violates the truthful CLI invariant** — users cannot distinguish LLM-ge
 ## Goal
 
 Improve CLI output consistency and clarity:
-- Clean up label registry (single source of truth)
+- Use existing label helpers consistently across commands
 - Add optional `[workspace]` prefix to headers
 - Standardize on rich tables throughout
 - Add workspace summary to list commands

@@ -83,6 +83,26 @@ Log of significant design choices made during hardening.
 
 **Note:** FTS scoping relies on per-workspace DB files; row-level workspace filtering deferred until schema includes `workspace_id` in content tables (`sources`, `artifacts`).
 
+## DECISION-0004: All CLI Commands Must Implement `--mode` (BI-0004)
+**Date:** 2026-01-30  
+**Status:** Accepted
+
+**Context:** The `run-pipeline` command has `--mode {manual,llm}` but individual skill commands (`research`, `targets`, etc.) and work ops commands (`meeting-summary`, etc.) do not. This creates inconsistency and makes truthfulness labels unreliable — CLI-001 identified `[computed]` being printed even when LLM paths might be invoked.
+
+**Decision:**
+- **All CLI commands that generate content must implement `--mode {manual,llm}`**
+- Default is `manual` (deterministic, no API keys needed)
+- `llm` mode requires explicit opt-in (`--mode llm` or `AG_LLM_ENABLED=1`)
+- Truthfulness labels (`[LLM]`, `[computed]`, etc.) **must reflect actual execution mode**
+- Help text must be consistent across all commands
+
+**Consequences:**
+- Users can trust that `[computed]` means no LLM was invoked
+- Users can run any command in LLM mode if desired
+- Commands without working LLM paths may treat `--mode llm` as no-op (with warning)
+- CLI_REFERENCE.md must document `--mode` for all commands
+- BI-0014 is now P1 (policy enforcement, not polish)
+
 ---
 
 ## Template for New Decisions
