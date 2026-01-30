@@ -27,7 +27,7 @@ You must not take shortcuts (no disabling checks, no bypass flags, no “just ig
 
 ### Non-negotiables for next sprint
 - No shortcuts: no flags to silence errors/warnings; fix root causes.
-- Deterministic by default; external providers optional and tests must skip cleanly.
+- LLM-first execution; deterministic-capable test path (manual mode for CI/perf/debug; no provider calls in CI).
 - Every change locked by tests + documented decisions when behavior changes.
 
 

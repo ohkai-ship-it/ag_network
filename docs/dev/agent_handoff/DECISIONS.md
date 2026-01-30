@@ -2,6 +2,48 @@
 
 Log of significant design choices made during hardening.
 
+## DECISION-0003 — LLM-first execution; deterministic-capable test path
+
+- **Date:** 2026-01-30
+- **Status:** Accepted
+- **Context:**
+  - The phrase "deterministic by default" implied manual mode was the default runtime experience.
+  - In practice, `agnetwork` is intended to run with `--mode llm` for the full user experience.
+  - We need a deterministic test path for CI/perf/debug, but this is **not** the default UX.
+
+- **Decision:**
+  1) **LLM-first execution** — default runtime UX is `--mode llm`.
+  2) **Deterministic-capable test path** — manual mode (`--mode manual`) exists for CI, performance baselines, and debugging. It is offline and deterministic.
+  3) **Manual mode is not required to match LLM feature parity** — it is a test/debug tool, not a user-facing mode.
+  4) **Provider/network calls must never happen in CI** unless explicitly configured via environment variables or test fixtures.
+
+- **Consequences:**
+  - Documentation now reflects that LLM mode is the intended user experience.
+  - Tests and CI use manual mode to ensure reproducibility without network dependencies.
+  - The "deterministic-capable" framing clarifies that determinism is a *capability* for testing, not the default behavior.
+
+
+## DECISION-0002 — Langfuse observability export is LLM-only (canonical trace stays local)
+
+- **Date:** 2026-01-30
+- **Status:** Accepted
+- **Context:**
+  - `agnetwork` is expected to run primarily in **LLM mode**.
+  - We still require **deterministic, offline-friendly manual mode** for tests and predictable workflows.
+  - Observability must not break local-first, workspace isolation, or auditability.
+
+- **Decision:**
+  1) The **canonical** observability record is a **workspace-scoped run trace** stored in the run folder (`trace.jsonl`).
+  2) External observability (Langfuse) is supported only as an **optional exporter** and is enabled **only when `mode==llm`**.
+  3) Manual mode must never export traces or require any network backend.
+  4) Default trace capture is **redacted** (no full prompts/tool payloads), with optional debug capture only via explicit opt-in later.
+
+- **Consequences:**
+  - The system remains local-first and auditable even without Langfuse.
+  - LLM runs can be debugged and analyzed in Langfuse without coupling the core to any vendor/backend.
+  - CI/tests remain offline and deterministic.
+
+
 ## ADR-001: Workspace Isolation via Constructor Enforcement (PR1)
 **Date:** 2026-01-28  
 **Status:** Accepted

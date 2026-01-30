@@ -297,7 +297,7 @@ Every change must preserve these invariants:
 | **No silent global fallbacks** | DB/storage/runs paths are explicit |
 | **Truthful CLI labeling** | `deterministic` vs `agent`; `retrieved` vs `generated` |
 | **Auditability** | Sources/evidence/artifacts are verifiable |
-| **Deterministic-by-default** | Provider calls are opt-in; tests run offline |
+| **LLM-first; deterministic-capable** | Default runtime is `--mode llm`; manual mode for CI/perf/debug; no provider calls in CI |
 
 If your change might affect these, add explicit tests or documentation.
 
