@@ -3,11 +3,12 @@
 ## Metadata
 - **ID:** BI-0005
 - **Type:** Perf/Hardening
-- **Status:** Proposed
+- **Status:** Done
 - **Priority:** P1
 - **Area:** Perf
 - **Owner:** Jeff
 - **Target sprint:** SPRINT-2026-01
+- **Completed:** 2026-01-30
 
 ## Problem
 We have a reported performance decrease, but without a repeatable baseline we can’t:
@@ -26,12 +27,12 @@ Create a minimal, offline performance harness that can be run locally and in CI 
 - Benchmarks that require network access or paid APIs
 
 ## Acceptance criteria (Definition of Done)
-- [ ] A perf doc exists: `docs/dev/reviews/PERFORMANCE_BASELINE_SPRINT-2026-01.md`
-- [ ] A repeatable baseline procedure exists (commands + expected outputs)
-- [ ] A harness script or pytest-marked perf test exists and runs offline:
-  - [ ] produces a small JSON/CSV result file in `docs/dev/_local/` (gitignored) OR `runs/` (workspace-scoped) depending on design
-- [ ] “before” numbers are captured for v0.2 main on at least one machine
-- [ ] No invariants violated (no cross-workspace leakage; no global fallbacks)
+- [x] A perf doc exists: `docs/dev/reviews/PERFORMANCE_BASELINE_SPRINT-2026-01.md`
+- [x] A repeatable baseline procedure exists (commands + expected outputs)
+- [x] A harness script or pytest-marked perf test exists and runs offline:
+  - [x] produces a small JSON/CSV result file in `docs/dev/_local/` (gitignored) OR `runs/` (workspace-scoped) depending on design
+- [x] "before" numbers are captured for v0.2 main on at least one machine
+- [x] No invariants violated (no cross-workspace leakage; no global fallbacks)
 
 ## Implementation notes
 - Keep it minimal: one benchmark workflow, one output format, stable fields.
