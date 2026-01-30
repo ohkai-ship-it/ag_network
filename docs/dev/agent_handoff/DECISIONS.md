@@ -2,6 +2,27 @@
 
 Log of significant design choices made during hardening.
 
+## DECISION-0002 — Langfuse observability export is LLM-only (canonical trace stays local)
+
+- **Date:** 2026-01-30
+- **Status:** Accepted
+- **Context:**
+  - `agnetwork` is expected to run primarily in **LLM mode**.
+  - We still require **deterministic, offline-friendly manual mode** for tests and predictable workflows.
+  - Observability must not break local-first, workspace isolation, or auditability.
+
+- **Decision:**
+  1) The **canonical** observability record is a **workspace-scoped run trace** stored in the run folder (`trace.jsonl`).
+  2) External observability (Langfuse) is supported only as an **optional exporter** and is enabled **only when `mode==llm`**.
+  3) Manual mode must never export traces or require any network backend.
+  4) Default trace capture is **redacted** (no full prompts/tool payloads), with optional debug capture only via explicit opt-in later.
+
+- **Consequences:**
+  - The system remains local-first and auditable even without Langfuse.
+  - LLM runs can be debugged and analyzed in Langfuse without coupling the core to any vendor/backend.
+  - CI/tests remain offline and deterministic.
+
+
 ## ADR-001: Workspace Isolation via Constructor Enforcement (PR1)
 **Date:** 2026-01-28  
 **Status:** Accepted

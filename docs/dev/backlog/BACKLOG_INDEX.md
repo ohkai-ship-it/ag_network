@@ -15,7 +15,7 @@ Canonical backlog of work items (features, refactors, hardening). Each item has 
 | BI-0003 | Quick code review (structured) + findings → backlog/bugs | Hardening | Done | P1 | Review | SPRINT-2026-01 | Jeff | items/BI-0003-quick-code-review.md |
 | BI-0004 | CLI review (truthfulness + UX) + backlog/bug intake | Hardening | Done | P1 | CLI | SPRINT-2026-01 | Jeff | items/BI-0004-cli-review.md |
 | BI-0005 | Performance baseline + harness (offline) | Perf/Hardening | Done | P1 | Perf | SPRINT-2026-01 | Jeff | items/BI-0005-performance-baseline-harness.md |
-| BI-0006 | Observability review + MVP trace spec (run visibility) | Observability | Proposed | P1 | Observability | SPRINT-2026-01 | Jeff | items/BI-0006-observability-mvp-spec.md |
+| BI-0006 | Observability review + MVP trace spec (run visibility) | Observability | Done | P1 | Observability | SPRINT-2026-01 | Jeff | items/BI-0006-observability-mvp-spec.md |
 | BI-0007 | Batch DB inserts for bulk operations | Performance | Proposed | P2 | Storage | TBD | TBD | items/BI-0007-batch-db-inserts.md |
 | BI-0008 | Lazy loading for workspace registry | Performance | Proposed | P2 | Core | TBD | TBD | items/BI-0008-lazy-workspace-registry.md |
 | BI-0009 | Add timing + evidence chain to worklog | Observability | Proposed | P1 | Observability | TBD | TBD | items/BI-0009-worklog-timing-evidence.md |
