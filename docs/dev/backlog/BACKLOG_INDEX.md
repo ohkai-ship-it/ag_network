@@ -24,6 +24,7 @@ Canonical backlog of work items (features, refactors, hardening). Each item has 
 | BI-0012 | CLI progress indicators for long ops | CLI UX | Proposed | P2 | CLI | TBD | TBD | items/BI-0012-cli-progress-indicators.md |
 | BI-0013 | Fix documentation drift in CLI_REFERENCE.md | Documentation | Proposed | P2 | CLI/Docs | TBD | TBD | items/BI-0013-cli-doc-drift.md |
 | BI-0014 | Add `--mode` flag to all CLI commands | CLI Feature | Proposed | **P1** | CLI | TBD | TBD | items/BI-0014-research-mode-flag.md |
+| BI-0015 | Policy Alignment — LLM-First, Deterministic-Capable | Process/Docs | Done | P1 | Docs/Governance | SPRINT-2026-01 | Jacob | items/BI-0015-policy-alignment-llm-first.md |
 
 ## Intake rules
 - **P0**: isolation, truthfulness, security, corruption

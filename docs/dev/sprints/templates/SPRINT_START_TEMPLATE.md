@@ -24,7 +24,7 @@
 - No global fallbacks (DB/storage/runs)
 - Truthful CLI labeling (deterministic vs agent; retrieved vs generated; cached vs fetched)
 - Auditability (sources + evidence chain verifiable)
-- Determinism by default (LLM/enrichment opt-in)
+- LLM-first; deterministic-capable test path (manual mode for CI/perf/debug)
 
 ## Baselines to capture (before changes)
 - ruff / pytest status

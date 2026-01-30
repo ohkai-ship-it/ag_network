@@ -30,7 +30,7 @@ You must not take shortcuts (no disabling checks, no bypass flags, no “just ig
 - No silent global fallbacks (DB/storage/runs).
 - Truthful CLI labeling (deterministic vs agent; retrieved vs generated; cached vs fetched).
 - Auditability preserved (sources/evidence/run artifacts verifiable).
-- Deterministic-by-default behavior (provider calls opt-in; tests offline).
+- LLM-first; deterministic-capable test path (default is `--mode llm`; manual mode for CI/perf/debug; no provider calls in CI).
 
 ---
 

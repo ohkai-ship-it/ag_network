@@ -19,7 +19,7 @@ The system is intended to run **mostly in LLM mode** (this is the “magic”), 
 We need an observability foundation that is:
 - **local-first and auditable** (canonical record lives with the run),
 - **modular and expandable** (exporters can be plugged in later),
-- compatible with **workspace isolation** and **determinism by default** (manual mode stays offline/testable).
+- compatible with **workspace isolation** and the **deterministic-capable test path** (manual mode stays offline/testable).
 
 ## Goal
 Define an Observability MVP that provides:
@@ -39,7 +39,7 @@ Deliverables are primarily **spec + docs**, with a PR-sized implementation plan.
 ## Design principles (non-negotiable)
 - **Canonical truth is local:** the run trace in the run folder is the source of truth.
 - **Workspace-scoped:** trace lives under the active workspace’s run directory; no global log fallbacks.
-- **Deterministic by default:** manual mode must not export or require external services.
+- **Deterministic-capable test path:** manual mode must not export or require external services.
 - **Truthful labeling:** trace must record actual mode and actual behavior; CLI can render from trace later.
 - **Minimal overhead:** the MVP must be cheap to write and easy to parse.
 

@@ -26,8 +26,8 @@ The system is designed to be extended safely: add tools/components/skills/workfl
 2. **Auditable outputs**  
    Every artifact can be traced back to sources. Evidence is embedded (JSON) and queryable (DB).
 
-3. **Determinism by default**  
-   LLM calls are opt-in and clearly marked. Deep link enrichment or other “extra fetch” behavior is opt-in.
+3. **LLM-first; deterministic-capable test path**  
+   Default runtime is `--mode llm`. Manual mode (`--mode manual`) provides offline determinism for CI/perf/debug. Provider calls never happen in CI unless explicitly configured.
 
 4. **Isolation**  
    Workspace boundaries are enforced at storage boundaries (DB + run roots), not only in prompts.

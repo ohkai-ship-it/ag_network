@@ -13,7 +13,7 @@
 Define an observability foundation for ag_network that is:
 - **Local-first and auditable** — canonical record lives with the run
 - **Workspace-scoped** — no global logs, no cross-workspace leakage
-- **Deterministic by default** — manual mode stays offline/testable
+- **Deterministic-capable test path** — manual mode stays offline/testable
 - **Modular** — exporters can be plugged in later
 
 ## 2. Design Principles (Non-Negotiable)
@@ -22,7 +22,7 @@ Define an observability foundation for ag_network that is:
 |-----------|-------------|
 | **Canonical truth is local** | `trace.jsonl` in run folder is the source of truth |
 | **Workspace-scoped** | Trace lives under active workspace's run directory |
-| **Deterministic by default** | Manual mode must not export or require external services |
+| **Deterministic-capable test path** | Manual mode must not export or require external services |
 | **Truthful labeling** | Trace must record actual mode and actual behavior |
 | **Minimal overhead** | Cheap to write, easy to parse (JSONL) |
 | **Privacy by default** | No full prompts/responses stored without explicit opt-in |
@@ -182,7 +182,7 @@ Exporters are configured via explicit environment variables:
 | `AG_OBS_EXPORT` | Exporter name: `none` (default), `langfuse`, `otlp` |
 | `AG_OBS_LANGFUSE_PUBLIC_KEY` | Langfuse public key |
 | `AG_OBS_LANGFUSE_SECRET_KEY` | Langfuse secret key |
-| `AG_OBS_LANGFUSE_HOST` | Langfuse host (optional, defaults to cloud) |
+| `AG_OBS_LANGFUSE_HOST` | Langfuse host (required for self-hosted; cloud supported but must be explicit) |
 
 ### 6.3 Export Policy (DECISION-0002)
 

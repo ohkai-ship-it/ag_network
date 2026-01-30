@@ -21,7 +21,7 @@ This document defines **how we collaborate** on `agnetwork`: roles, invariants, 
 ### Junior Engineer — **Jacob** (VS Code + Copilot + Opus 4.5)
 **Responsibilities**
 - Implements PRs following the prompt/spec (no scope creep).
-- Adds tests (offline; deterministic by default).
+- Adds tests (offline; using manual mode for determinism).
 - Updates internal work docs (summaries, debug notes, test reports).
 - Produces PR completion summaries for review.
 
@@ -31,7 +31,7 @@ This document defines **how we collaborate** on `agnetwork`: roles, invariants, 
 - **No global fallbacks**: DB/storage/runs must not silently default to global config.
 - **Truthful CLI**: labels must reflect reality (deterministic vs agent; retrieved vs generated; cached vs fetched).
 - **Auditability**: sources captured; artifacts reference `source_id`s; evidence snippets (when required) are verifiable; verifier enforces.
-- **Determinism by default**: LLM/enrichment is opt-in; tests run offline; golden outputs don’t change unless versioned.
+- **LLM-first execution; deterministic-capable test path**: default runtime is `--mode llm`; manual mode (`--mode manual`) provides offline determinism for CI/perf/debug; provider/network calls never happen in CI unless explicitly configured.
 
 If a change threatens any invariant, we stop and redesign; we do not “patch around it”.
 
@@ -92,6 +92,14 @@ If you want a clean separation between committed internal docs and machine outpu
 - `PROJECT_PLAN.md` — project plan / roadmap (repo root)
 - `docs/dev/reviews/REVIEW_GUIDE.md` — how we run reviews
 - `docs/dev/team/collaboration_manifest.md` — this document
+
+### Continuation prompt templates (for new chat sessions)
+- `docs/dev/team/continuation_prompt_gpt52_TEMPLATE.md` — Senior Engineer (Jeff) role template
+- `docs/dev/team/continuation_prompt_opus_TEMPLATE.md` — Junior Engineer (Jacob) role template
+
+Instantiated prompts (with session-specific context) are stored alongside the templates:
+- `docs/dev/team/continuation_prompt_gpt52.md`
+- `docs/dev/team/continuation_prompt_opus.md`
 
 ### Handoff loop
 1) **Kai/Jeff** defines PR scope (small + test-first) and writes a PR prompt/spec.
